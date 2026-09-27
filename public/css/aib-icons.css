@@ -1,0 +1,70 @@
+[class^="icon-"], [class*=" icon-"] {
+	font-family: 'aib-icons';
+	speak: none;
+	font-style: normal;
+	font-weight: normal;
+	font-variant: normal;
+	text-transform: none;
+	line-height: 1;
+
+	/* Better Font Rendering =========== */
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.icon-aib20_mail-pending:before {
+	content: "\e60a";
+}
+
+.icon-aib20_mail-sent:before {
+	content: "\e60b";
+}
+
+.icon-aib20_mail-new:before {
+	content: "\e60c";
+}
+
+.icon-aib20_mail-read:before {
+	content: "\e60d";
+}
+
+.icon-aib16_accounts:before {
+	content: "\e600";
+}
+
+.icon-aib16_transfer:before {
+	content: "\e601";
+}
+
+.icon-aib16_chart:before {
+	content: "\e602";
+}
+
+.icon-aib16_open:before {
+	content: "\e603";
+}
+
+.icon-aib16_services:before {
+	content: "\e604";
+}
+
+.icon-aib32_accounts:before {
+	content: "\e605";
+}
+
+.icon-aib32_transfer:before {
+	content: "\e606";
+}
+
+.icon-aib32_chart:before {
+	content: "\e607";
+}
+
+.icon-aib32_open:before {
+	content: "\e608";
+}
+
+.icon-aib32_services:before {
+	content: "\e609";
+}
+

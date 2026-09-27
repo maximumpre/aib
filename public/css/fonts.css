@@ -1,0 +1,49 @@
+@font-face {
+	font-family:'aspira-regular';
+	src:url('../../common/fonts/aspira/aspira-regular.eot');
+	src:url('../../common/fonts/aspira/aspira-regular.eot?#iefix') format('embedded-opentype'),
+	url('../../common/fonts/aspira/aspira-regular.woff') format('woff'),
+	url('../../common/fonts/aspira/aspira-regular.ttf') format('truetype'),
+	url('../../common/fonts/aspira/aspira-regular.svg') format('svg');
+	font-weight:normal;
+	font-style:normal;
+}
+@font-face {
+	font-family:'aspira-medium';
+	src:url('../../common/fonts/aspira/aspira-medium.eot');
+	src:url('../../common/fonts/aspira/aspira-medium.eot?#iefix') format('embedded-opentype'),
+	url('../../common/fonts/aspira/aspira-medium.woff') format('woff'),
+	url('../../common/fonts/aspira/aspira-medium.ttf') format('truetype'),
+	url('../../common/fonts/aspira/aspira-medium.svg') format('svg');
+	font-weight:normal;
+	font-style:normal;
+}
+@font-face {
+	font-family:'aspira-demi';
+	src:url('../../common/fonts/aspira/aspira-demi.eot');
+	src:url('../../common/fonts/aspira/aspira-demi.eot?#iefix') format('embedded-opentype'),
+	url('../../common/fonts/aspira/aspira-demi.woff') format('woff'),
+	url('../../common/fonts/aspira/aspira-demi.ttf') format('truetype');
+	font-weight:normal;
+	font-style:normal;
+}
+@font-face {
+    font-family:'font-awesome';
+    src:url('../../common/fonts/font-awesome/font-awesome.eot');
+    src:url('../../common/fonts/font-awesome/font-awesome.eot?#iefix') format('embedded-opentype'),
+    url('../../common/fonts/font-awesome/font-awesome.woff') format('woff'),
+    url('../../common/fonts/font-awesome/font-awesome.ttf') format('truetype'),
+    url('../../common/fonts/font-awesome/font-awesome.svg') format('svg');
+    font-weight:normal;
+    font-style:normal;
+}
+@font-face {
+    font-family:'aib-icons';
+    src:url('../../common/fonts/aib-icons/aibicons.eot?-1irkd0');
+    src:url('../../common/fonts/aib-icons/aibicons.eot?#iefix-1irkd0') format('embedded-opentype'),
+    		url('../../common/fonts/aib-icons/aibicons.woff?-1irkd0') format('woff'),
+    		url('../../common/fonts/aib-icons/aibicons.ttf?-1irkd0') format('truetype'),
+    		url('../../common/fonts/aib-icons/aibicons.svg?-1irkd0#aibicons') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}

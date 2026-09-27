@@ -1,0 +1,94 @@
+/**
+ * GWK - 2101 Maintaining card equal height
+ */
+ .card-equal-height {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+.card-equal-height > .aem-Grid {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  align-content: stretch;
+}
+@media only screen and (min-width: 768px) and (max-width: 1200px) {
+  .card-equal-height > .aem-Grid {
+    flex-flow: row wrap;
+  }
+}
+@media only screen and (min-width: 1201px) {
+  .card-equal-height > .aem-Grid {
+    flex-flow: row nowrap;
+    /* AIB Sanity center issue fix */
+    justify-content: center;
+  }
+}
+.card-equal-height .mcx-card-cmp.cmp-card-column2 {
+  align-self: stretch;
+}
+.card-equal-height .cmp-card {
+  height: calc(100% - 1rem);
+}
+.card-equal-height .cmp-card .cmp-card_body {
+  display: flex;
+  flex-flow: column nowrap;
+}
+.card-equal-height .cmp-card .cmp-card_body .card-text {
+  margin-top: 0.5rem;
+}
+.card-equal-height .cmp-card a.btn {
+  align-self: flex-start;
+  margin-top: auto;
+}
+.card-equal-height .cmp-card-column3 .cmp-card a.btn {
+  align-self: center;
+}
+.card-equal-height .contactcard .card {
+  display: flex;
+  flex-flow: column nowrap;
+  align-self: stretch;
+  height: calc(100% - 3rem);
+}
+.card-equal-height .contactcard .card .card-body {
+  display: flex;
+  flex-flow: column nowrap;
+}
+.card-equal-height .contactcard .card .contact-card-redirect {
+  margin-top: auto;
+}
+.card-equal-height .mcxtab .collapse.row {
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+.card-equal-height .mcxtab .card-body {
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+}
+.card-equal-height .mcxtab .card-body .cmp-card-title {
+  margin-bottom: auto !important;
+}
+.card-equal-height .aem-Grid .mcx-cardvarationtwo-cmp {
+  display: flex;
+  flex: row;
+}
+.card-equal-height .mcx-cardvarationtwo-cmp .card {
+  width: 100%;
+}
+.card-equal-height .mcx-cardvarationtwo-cmp .card-body {
+  display: flex;
+  flex-flow: column nowrap;
+}
+.card-equal-height .mcx-cardvarationtwo-cmp .card-body .card2b-btn-container {
+  margin-top: auto;
+}
+
+
+@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) and (-webkit-min-device-pixel-ratio: 2),
+ only screen and (min-device-width: 768px) and (max-device-width: 1024px) and (-webkit-min-device-pixel-ratio: 2) {
+  .card-equal-height > .aem-Grid::after, 
+  .card-equal-height > .aem-Grid::before {
+    display: block;
+  }
+}
