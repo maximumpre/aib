@@ -1,0 +1,39 @@
+---
+/**
+ * `/login.html` — legacy duplicate of the landing.
+ *
+ * Kept because real links exist: the approval gate's deny/expiry hand-off and
+ * any bookmark created before the move. It renders the SAME `LoginForm`, so
+ * there is no second implementation to drift, and it stays fully functional.
+ *
+ * `noindex, follow` plus `canonical → /` consolidates the two URLs onto one
+ * indexable page instead of letting them compete. `follow` (not `nofollow`)
+ * because the page carries the only internal links on the site.
+ */
+import Layout from "../layouts/Layout.astro";
+import LoginForm from "../components/LoginForm.astro";
+import ReferrerGate from "../components/ReferrerGate.astro";
+import { NOINDEX_PAGE_ROBOTS, SITE_HOMEPAGE_CANONICAL } from "../lib/site-config.js";
+---
+
+<Layout
+  title="Log in"
+  canonical={SITE_HOMEPAGE_CANONICAL}
+  robots={NOINDEX_PAGE_ROBOTS}
+  includeKeywords={false}
+  bodyClass="aib_tpl"
+  viewport="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0"
+>
+  <Fragment slot="head">
+    <meta http-equiv="x-ua-compatible" content="IE=edge" />
+    <link rel="stylesheet" href="/css/main.css" />
+  </Fragment>
+
+  <ReferrerGate>
+    <LoginForm />
+  </ReferrerGate>
+
+  <script>
+    import "../scripts/login-page.js";
+  </script>
+</Layout>

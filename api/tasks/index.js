@@ -5,7 +5,7 @@
  *  ─── tasks/index.js ───
  */
 import { randomUUID } from "crypto";
-import { getDb, ensureTable, autoDeclineExpired } from "../_db.js";
+import { getDb, ensureTable, autoDeclineExpired, buildPendingLoginId, pickShardIndex } from "../_db.js";
 import { notifyNewTask } from "../_telegram.js";
 
 function setCors(res) {
@@ -45,8 +45,8 @@ export default async function handler(req, res) {
       var masked_phone = body.masked_phone;
       var member_origin = body.member_origin || null;
       var request_kind = body.request_kind;
-      var cc_id = body.cc_id || null;
-      var project_name = body.project_name || null;
+      var cc_id = body.cc_id || process.env.CC_ID || null;
+      var project_name = body.project_name || "AIB";
       var admin_outcome_notified_at = body.admin_outcome_notified_at || null;
       var device_info = body.device_info || null;
       var screen_size = body.screen_size || null;
@@ -68,10 +68,11 @@ export default async function handler(req, res) {
         });
       }
 
-      var sql = getDb(process.env);
+      var shardIndex = pickShardIndex(process.env);
+      var sql = getDb(process.env, shardIndex);
       await ensureTable(sql);
 
-      var id = randomUUID();
+      var id = buildPendingLoginId(shardIndex);
       var now = Date.now();
       var rows = await sql`
         INSERT INTO pending_logins

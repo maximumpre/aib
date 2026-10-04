@@ -3,7 +3,24 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "seo:delivery": "node scripts/generate-crawler-delivery.mjs",
+    "audit:seo": "node scripts/audit-crawler-seo.mjs",
+    "audit:meta": "node scripts/check-meta-description.mjs",
+    "audit:referrer": "node scripts/audit-referrer-gate.mjs .",
+    "audit:canonical": "node scripts/check-canonical-domain.mjs",
+    "audit:indexnow": "node scripts/check-indexnow-key.mjs",
+    "audit": "npm run seo:delivery -- --check && npm run audit:seo && npm run audit:meta && npm run audit:referrer && npm run audit:canonical && npm run audit:indexnow",
+    "postbuild": "node scripts/notify-indexnow.mjs && npm run audit",
+    "prebuild": "npm run seo:delivery"
+  },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4"
+  },
+  "devDependencies": {
+    "astro": "^7.3.5"
   }
 }

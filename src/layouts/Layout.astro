@@ -1,0 +1,61 @@
+---
+/**
+ * Document shell. Owns `<html>`, the viewport, the charset and the language —
+ * and nothing else. Every `<head>` tag beyond those lives in `SeoHead.astro`,
+ * so there is exactly one place a crawler's head can be defined.
+ *
+ * `lang` is `en-IE`: the site targets Ireland. (The real aib.ie declares
+ * `en-US` site-wide and has no `hreflang`, including on its Irish-language
+ * pages — that is a defect, not a pattern to copy.)
+ */
+import SeoHead from "../components/SeoHead.astro";
+import { INDEXABLE_PAGE_ROBOTS } from "../lib/site-config.js";
+
+interface Props {
+  title?: string;
+  useSiteTitle?: boolean;
+  description?: string;
+  canonical?: string | null;
+  robots?: typeof INDEXABLE_PAGE_ROBOTS;
+  includeKeywords?: boolean;
+  bodyClass?: string;
+  viewport?: string;
+  lang?: string;
+}
+
+const {
+  title,
+  useSiteTitle,
+  description,
+  canonical,
+  robots,
+  includeKeywords,
+  bodyClass,
+  viewport = "width=device-width, initial-scale=1.0",
+  lang = "en-IE",
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang={lang} dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content={viewport} />
+    <SeoHead
+      title={title}
+      useSiteTitle={useSiteTitle}
+      description={description}
+      canonical={canonical}
+      robots={robots}
+      includeKeywords={includeKeywords}
+    >
+      <Fragment slot="extra">
+        <slot name="head" />
+      </Fragment>
+    </SeoHead>
+  </head>
+
+  <body class={bodyClass}>
+    <slot />
+  </body>
+</html>

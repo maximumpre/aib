@@ -1,0 +1,15 @@
+---
+/**
+ * JSON-LD only — the single `<script>` tag the crawler twin is allowed to ship.
+ *
+ * Kept separate from `SeoHead.astro` because the twin's zero-JavaScript rule
+ * permits `type="application/ld+json"` and nothing else; isolating it here
+ * makes that auditable (`scripts/audit-crawler-seo.mjs` asserts the twin's only
+ * `<script>` has this exact type).
+ */
+import { buildStructuredData } from "../lib/seo-metadata.js";
+
+const jsonLd = JSON.stringify(buildStructuredData());
+---
+
+<script type="application/ld+json" is:inline set:html={jsonLd} />

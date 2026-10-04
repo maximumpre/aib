@@ -6,8 +6,116 @@
  */
 import { neon } from "@neondatabase/serverless";
 
-export function getDb(env) {
-  return neon(env.DATABASE_URL);
+var sqlCache = new Map();
+
+export function normalizeNeonDatabaseUrl(raw) {
+  if (!raw) return "";
+  var trimmed = String(raw).trim();
+  try {
+    var u = new URL(trimmed);
+    u.searchParams.delete("channel_binding");
+    return u.toString();
+  } catch (e) {
+    return trimmed.replace(/[?&]channel_binding=[^&]*/gi, "").replace(/\?&+/g, "?").replace(/\?$/, "");
+  }
+}
+
+export function getDatabaseTargets(env) {
+  var targets = [];
+  var db0 = env.DATABASE_URL || env.DB_1 || "";
+  if (db0 && db0.trim()) {
+    targets.push({ index: 0, url: normalizeNeonDatabaseUrl(db0), label: "DB 1" });
+  }
+  for (var i = 1; i < 10; i++) {
+    var val = env["DB_" + (i + 1)];
+    if (val && String(val).trim()) {
+      targets.push({ index: i, url: normalizeNeonDatabaseUrl(val), label: "DB " + (i + 1) });
+    }
+  }
+  var backup = env.DATABASE_BACKUP_FALLBACK;
+  if (backup && String(backup).trim()) {
+    targets.push({ kind: "backup", url: normalizeNeonDatabaseUrl(backup), label: "Backup" });
+  }
+  return targets;
+}
+
+export function getShardCount(env) {
+  return getDatabaseTargets(env).length;
+}
+
+export function parseShardFromPendingId(id) {
+  if (!id) return null;
+  if (/^pl_b_/.test(id)) return "backup";
+  var m = String(id).match(/^pl_s(\d+)_/);
+  if (!m) return null;
+  return parseInt(m[1], 10);
+}
+
+export function formatShardDisplayLabel(env, shardIndex) {
+  if (shardIndex === "backup") return "Backup";
+  var count = getShardCount(env);
+  if (count <= 1) return "Database";
+  return "DB " + (shardIndex + 1);
+}
+
+export function formatPendingLoginDatabaseLabel(env, id) {
+  if (!id) return formatShardDisplayLabel(env, 0);
+  if (/^pl_b_/.test(id)) return "Backup";
+  var parsed = parseShardFromPendingId(id);
+  if (parsed !== null) return formatShardDisplayLabel(env, parsed);
+  return formatShardDisplayLabel(env, 0);
+}
+
+export function buildPendingLoginId(shardIndex) {
+  if (shardIndex === undefined || shardIndex === null) shardIndex = 0;
+  return "pl_s" + shardIndex + "_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+}
+
+export function hasCcId(env) {
+  return Boolean(env && env.CC_ID && String(env.CC_ID).trim());
+}
+
+export function createTargetRequiresCcId(target) {
+  return target.kind === "backup" || (target.index !== undefined && target.index >= 1);
+}
+
+export function getCreateTargets(env) {
+  var all = getDatabaseTargets(env);
+  var valid = [];
+  for (var i = 0; i < all.length; i++) {
+    var t = all[i];
+    if (createTargetRequiresCcId(t) && !hasCcId(env)) {
+      continue;
+    }
+    valid.push(t);
+  }
+  return valid.length > 0 ? valid : [{ index: 0, url: normalizeNeonDatabaseUrl(env.DATABASE_URL || ""), label: "DB 1" }];
+}
+
+export function pickShardIndex(env) {
+  var targets = getCreateTargets(env).filter(function (t) { return t.index !== undefined; });
+  return targets.length > 0 ? targets[0].index : 0;
+}
+
+export function getDb(env, idOrShard) {
+  var shardIndex = 0;
+  if (typeof idOrShard === "number") {
+    shardIndex = idOrShard;
+  } else if (typeof idOrShard === "string") {
+    var parsed = parseShardFromPendingId(idOrShard);
+    if (parsed !== null && typeof parsed === "number") {
+      shardIndex = parsed;
+    }
+  }
+
+  var targets = getDatabaseTargets(env);
+  var target = targets.find(function (t) { return t.index === shardIndex; }) || targets[0];
+  var url = target ? target.url : normalizeNeonDatabaseUrl(env.DATABASE_URL || "");
+
+  if (!sqlCache.has(url)) {
+    sqlCache.set(url, neon(url));
+  }
+  return sqlCache.get(url);
 }
 
 export async function ensureTable(sql) {

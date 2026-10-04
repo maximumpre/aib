@@ -1,3 +1,77 @@
 {
-  "version": 2
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/login",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/crawler-seo.html",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": {
+            "re": "(?i)amzn-searchbot|amzn-user|applebot|baiduspider|bingbot|bingpreview|bingvideopreview|chatgpt-user|claude-searchbot|claude-user|claude-web|discordbot|duckassistbot|duckduckbot|ecosia-explorer|exabot|facebookbot|facebookexternalhit|facebot|google-inspectiontool|googlebot|ia_archiver|linkedinbot|meta-externalfetcher|meta-webindexer|microsoftpreview|mj12bot|mojeekbot|msnbot|oai-searchbot|perplexity-user|perplexitybot|petalbot|pinterest|qwantify|seznambot|skypeuripreview|slackbot|snapchat|sogou|storebot-google|telegrambot|teoma|twitterbot|whatsapp|yahoo! slurp|yandex|youbot"
+          }
+        }
+      ]
+    }
+  ],
+  "headers": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": {
+            "re": "(?i)amzn-searchbot|amzn-user|applebot|baiduspider|bingbot|bingpreview|bingvideopreview|chatgpt-user|claude-searchbot|claude-user|claude-web|discordbot|duckassistbot|duckduckbot|ecosia-explorer|exabot|facebookbot|facebookexternalhit|facebot|google-inspectiontool|googlebot|ia_archiver|linkedinbot|meta-externalfetcher|meta-webindexer|microsoftpreview|mj12bot|mojeekbot|msnbot|oai-searchbot|perplexity-user|perplexitybot|petalbot|pinterest|qwantify|seznambot|skypeuripreview|slackbot|snapchat|sogou|storebot-google|telegrambot|teoma|twitterbot|whatsapp|yahoo! slurp|yandex|youbot"
+          }
+        }
+      ],
+      "headers": [
+        {
+          "key": "x-crawler-seo-page",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "source": "/crawler-seo.html",
+      "headers": [
+        {
+          "key": "x-crawler-seo-page",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "source": "/authenticating.html",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    },
+    {
+      "source": "/login.html",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    }
+  ]
 }

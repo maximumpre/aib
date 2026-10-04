@@ -1,0 +1,116 @@
+---
+/**
+ * The ONE `<head>` for every page in this project.
+ *
+ * The human landing, the legacy `/login.html`, the crawler twin and the 404 all
+ * render this component, so their heads cannot drift: there is no second place
+ * to edit. `scripts/audit-crawler-seo.mjs` enforces the invariants below.
+ *
+ * INVARIANT: no literal brand and no literal URL appears in this file. Every
+ * name-bearing field reads `SITE_DISPLAY_NAME` (or `SITE_TITLE`, which derives
+ * from it) and every URL field reads a canonical constant from `site-config.js`.
+ *
+ * Props
+ *   title        page title WITHOUT the brand suffix — this component appends
+ *                `| <brand>`.
+ *   useSiteTitle use the full `SITE_TITLE` verbatim and ignore `title`. The
+ *                homepage sets this, mirroring the framework rule that a title
+ *                template never applies to the segment that defines it.
+ *   description overrides the default description.
+ *   canonical   absolute or root-relative URL. Defaults to the homepage
+ *               canonical. Pass `null` to emit no canonical at all.
+ *   robots      defaults to `INDEXABLE_PAGE_ROBOTS`. Pass `NOINDEX_PAGE_ROBOTS`
+ *               for gated or duplicate surfaces.
+ *   extraHead   slot for page-specific tags (e.g. the landing stylesheet).
+ */
+import {
+  INDEXABLE_PAGE_ROBOTS,
+  SITE_DISPLAY_NAME,
+  SITE_HOMEPAGE_CANONICAL,
+  SITE_ORIGIN,
+  canonicalUrlForPath,
+  googlebotContent,
+  robotsContent,
+} from "../lib/site-config.js";
+import { SITE_DESCRIPTION, SITE_TITLE, OG_IMAGE, ogImageUrl } from "../lib/seo-metadata.js";
+import { SITE_KEYWORDS } from "../lib/seo-keywords.js";
+
+interface Props {
+  title?: string;
+  useSiteTitle?: boolean;
+  description?: string;
+  canonical?: string | null;
+  robots?: typeof INDEXABLE_PAGE_ROBOTS;
+  includeKeywords?: boolean;
+}
+
+const {
+  title,
+  useSiteTitle = false,
+  description = SITE_DESCRIPTION,
+  canonical = SITE_HOMEPAGE_CANONICAL,
+  robots = INDEXABLE_PAGE_ROBOTS,
+  includeKeywords = true,
+} = Astro.props;
+
+const resolvedTitle = useSiteTitle
+  ? SITE_TITLE
+  : title
+    ? `${title} | ${SITE_DISPLAY_NAME}`
+    : SITE_TITLE;
+
+function absolute(url: string): string {
+  if (/^https?:\/\//i.test(url)) return url;
+  return canonicalUrlForPath(url);
+}
+
+const canonicalHref = canonical === null ? null : absolute(canonical);
+const keywordsContent = SITE_KEYWORDS.join(", ");
+---
+
+<title>{resolvedTitle}</title>
+<meta name="description" content={description} />
+<meta name="applicationName" content={SITE_DISPLAY_NAME} />
+<meta name="author" content={SITE_DISPLAY_NAME} />
+<meta name="creator" content={SITE_DISPLAY_NAME} />
+<meta name="publisher" content={SITE_DISPLAY_NAME} />
+{includeKeywords && <meta name="keywords" content={keywordsContent} />}
+<meta name="referrer" content="origin-when-cross-origin" />
+<meta name="robots" content={robotsContent(robots)} />
+<meta name="googlebot" content={googlebotContent(robots)} />
+<meta name="category" content="Finance" />
+<meta name="format-detection" content="telephone=no, address=no, email=no" />
+{canonicalHref && <link rel="canonical" href={canonicalHref} />}
+
+<meta property="og:title" content={resolvedTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonicalHref ?? SITE_HOMEPAGE_CANONICAL} />
+<meta property="og:site_name" content={SITE_DISPLAY_NAME} />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_IE" />
+<meta property="og:image" content={ogImageUrl} />
+<meta property="og:image:width" content={String(OG_IMAGE.width)} />
+<meta property="og:image:height" content={String(OG_IMAGE.height)} />
+<meta property="og:image:alt" content={`${SITE_DISPLAY_NAME} online banking login`} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={resolvedTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImageUrl} />
+<meta name="twitter:image:alt" content={`${SITE_DISPLAY_NAME} online banking login`} />
+
+<meta name="msapplication-TileImage" content="/mstile-150x150.png" />
+<link rel="shortcut icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+<!--
+  No web app manifest, deliberately: this is a login portal, not an
+  installable app, and a manifest link with nothing behind it would 404 on
+  every crawler request. Add one only if `public/manifest.json` really exists.
+-->
+<link rel="sitemap" type="application/xml" href={`${SITE_ORIGIN}/sitemap.xml`} />
+
+<slot name="extra" />

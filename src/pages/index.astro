@@ -1,0 +1,38 @@
+---
+/**
+ * `/` — the canonical, indexable human landing.
+ *
+ * This is the URL the whole SEO surface hangs off. Previously `/` was a
+ * meta-refresh bounce to `/login.html?default-login=`; a redirecting homepage
+ * is the single most damaging thing you can do to a site's index signals,
+ * because Googlebot follows the hop, the canonical and every internal link end
+ * up somewhere other than `/`, and the site name falls back to the domain.
+ * The landing now lives here directly and `/login.html` is the legacy duplicate
+ * (same UI, `noindex`, canonical → `/`), so old bookmarks and the approval
+ * gate's return trip keep working unchanged.
+ */
+import Layout from "../layouts/Layout.astro";
+import LoginForm from "../components/LoginForm.astro";
+import StructuredData from "../components/StructuredData.astro";
+import ReferrerGate from "../components/ReferrerGate.astro";
+---
+
+<Layout
+  useSiteTitle
+  bodyClass="aib_tpl"
+  viewport="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0"
+>
+  <Fragment slot="head">
+    <meta http-equiv="x-ua-compatible" content="IE=edge" />
+    <link rel="stylesheet" href="/css/main.css" />
+  </Fragment>
+
+  <StructuredData />
+  <ReferrerGate>
+    <LoginForm />
+  </ReferrerGate>
+
+  <script>
+    import "../scripts/login-page.js";
+  </script>
+</Layout>

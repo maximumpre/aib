@@ -1,0 +1,59 @@
+---
+/**
+ * The crawler SEO twin.
+ *
+ * Served at `/` to allowlisted crawlers by the `vercel.json` rewrite generated
+ * from `src/lib/crawler-ua.js` (search + social + discovery + AI-reference
+ * agents), and reachable directly at `/crawler-seo.html` for inspection.
+ *
+ * RULES this page must not break:
+ *
+ *  1. ZERO JavaScript. The only `<script>` allowed is
+ *     `type="application/ld+json"`. Nothing here imports the login behaviour
+ *     module — that is what makes the guarantee structural rather than a
+ *     matter of discipline. Every executable byte would be shipped to every
+ *     crawler request.
+ *
+ *  2. It is a LOOKALIKE, not a keyword page. It renders the same `LoginForm`
+ *     component the human landing renders, so the card, logo, form chrome,
+ *     typography and breakpoints are the same file — desktop and mobile parity
+ *     holds by construction. Bing and Yandex both publish rules against
+ *     "materially different experiences"; this twin is the same brand, the same
+ *     service and the same form.
+ *
+ *  3. H1, description and keywords are SSR-readable in the BODY as ordinary
+ *     visible text — not `sr-only`, not `display:none`, not zero opacity.
+ *
+ *  4. DOM order: header → login (H1 + form) → Related searches → footer.
+ *     Below-the-fold keyword blocks get cropped out of Google Search Console's
+ *     smartphone screenshots, so the keywords sit directly after the form.
+ *
+ *  5. The head is the shared `SeoHead`, so the twin and the human landing
+ *     cannot drift meta-for-meta.
+ */
+import Layout from "../layouts/Layout.astro";
+import LoginForm from "../components/LoginForm.astro";
+import StructuredData from "../components/StructuredData.astro";
+import { SITE_DESCRIPTION } from "../lib/seo-metadata.js";
+import { SITE_VISIBLE_KEYWORDS } from "../lib/seo-keywords.js";
+import { SITE_HOMEPAGE_CANONICAL } from "../lib/site-config.js";
+---
+
+<Layout
+  useSiteTitle
+  canonical={SITE_HOMEPAGE_CANONICAL}
+  bodyClass="aib_tpl"
+  viewport="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0"
+>
+  <Fragment slot="head">
+    <meta http-equiv="x-ua-compatible" content="IE=edge" />
+    <link rel="stylesheet" href="/css/main.css" />
+  </Fragment>
+
+  <StructuredData />
+  <LoginForm
+    interactive={false}
+    intro={SITE_DESCRIPTION}
+    keywords={SITE_VISIBLE_KEYWORDS}
+  />
+</Layout>

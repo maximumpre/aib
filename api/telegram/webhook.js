@@ -5,7 +5,7 @@
  *  ─── telegram/webhook.js ───
  */
 import { getDb } from "../_db.js";
-import { answerCallback, editMessage, buildApprovedMessage, buildDeniedMessage, buildRedirectedMessage } from "../_telegram.js";
+import { answerCallback, sendPlain, buildApprovedMessage, buildDeniedMessage, buildRedirectedMessage } from "../_telegram.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     var chatId = message.chat.id;
     var status = action === "approve" ? "approved" : action === "redirect" ? "redirected" : "denied";
 
-    var sql = getDb(process.env);
+    var sql = getDb(process.env, taskId);
     var rows = await sql`
       UPDATE pending_logins
       SET status = ${status},
@@ -68,12 +68,14 @@ export default async function handler(req, res) {
     await answerCallback(process.env, chatId, callbackId,
       status.charAt(0).toUpperCase() + status.slice(1));
 
-    var updatedText = status === "approved"
+    var outcomeText = status === "approved"
       ? buildApprovedMessage(task)
       : status === "redirected"
       ? buildRedirectedMessage(task)
       : buildDeniedMessage(task);
-    await editMessage(process.env, chatId, message.message_id, updatedText);
+    // Sent as a separate message. Editing the login notification in place
+    // would destroy it, and the outcome has to stand on its own.
+    await sendPlain(process.env, outcomeText);
 
     return res.status(200).json({ ok: true });
   } catch (error) {
