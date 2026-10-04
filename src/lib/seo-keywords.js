@@ -51,17 +51,33 @@ export function buildHostKeywords() {
   return [...new Set([host, apex].filter(Boolean))];
 }
 
+const FULL_BRAND_NAME = "Allied Irish Bank";
+const FULL_BRAND_PLURAL = "Allied Irish Banks";
+
 /** Brand + access. Navigational; the login screen is the correct destination. */
 export const BRAND_ACCESS_KEYWORDS = [
   `${SITE_DISPLAY_NAME} login`,
+  `${FULL_BRAND_NAME} login`,
+  `${FULL_BRAND_PLURAL} login`,
   `${SITE_DISPLAY_NAME} online banking login`,
+  `${FULL_BRAND_NAME} online banking`,
+  `${FULL_BRAND_NAME} internet banking`,
+  `${FULL_BRAND_PLURAL} online banking`,
   `${SITE_DISPLAY_NAME} internet banking login`,
+  `${FULL_BRAND_NAME} online banking login`,
   `${SITE_DISPLAY_NAME} login page`,
+  `${FULL_BRAND_NAME} login page`,
   `${SITE_DISPLAY_NAME} login personal`,
+  `${FULL_BRAND_NAME} personal login`,
   `${SITE_DISPLAY_NAME} login Ireland`,
+  `${FULL_BRAND_NAME} Ireland login`,
+  `${FULL_BRAND_NAME} online banking sign in`,
   `${SITE_DISPLAY_NAME} online banking app login`,
   `${SITE_DISPLAY_NAME} 24/7 banking`,
+  `${FULL_BRAND_NAME} 24/7 banking`,
+  `${FULL_BRAND_NAME} digital banking`,
   `${SITE_DISPLAY_NAME} digital profile sign in`,
+  `${FULL_BRAND_NAME} sign in`,
 ];
 
 /**
@@ -71,31 +87,55 @@ export const BRAND_ACCESS_KEYWORDS = [
  */
 export const CREDENTIAL_KEYWORDS = [
   `${SITE_DISPLAY_NAME} registration number`,
+  `${FULL_BRAND_NAME} registration number`,
+  `${FULL_BRAND_PLURAL} registration number`,
   `${SITE_DISPLAY_NAME} registration number where to find`,
+  `where to find ${FULL_BRAND_NAME} registration number`,
   `${SITE_DISPLAY_NAME} registration number and PAC`,
+  `${FULL_BRAND_NAME} registration number and PAC`,
   `${SITE_DISPLAY_NAME} PAC`,
+  `${FULL_BRAND_NAME} PAC`,
   `${SITE_DISPLAY_NAME} PAC code`,
+  `${FULL_BRAND_NAME} PAC code`,
   "what is a personal access code",
   "5 digit personal access code",
+  `${FULL_BRAND_NAME} 5 digit PAC`,
+  `${FULL_BRAND_PLURAL} personal access code`,
   `${SITE_DISPLAY_NAME} registration number retrieval`,
+  `find my ${SITE_DISPLAY_NAME} registration number`,
+  `${FULL_BRAND_NAME} online banking registration number`,
 ];
 
 /** Recovery / problem-solving. Highest user pain, lowest competition, best fit. */
 export const RECOVERY_KEYWORDS = [
   `${SITE_DISPLAY_NAME} forgot PAC`,
+  `${FULL_BRAND_NAME} forgot PAC`,
   `${SITE_DISPLAY_NAME} reset PAC`,
+  `${FULL_BRAND_NAME} reset PAC`,
   `${SITE_DISPLAY_NAME} lost PAC`,
+  `${FULL_BRAND_NAME} lost PAC`,
   "forgot personal access code",
+  `reset ${FULL_BRAND_NAME} PAC online`,
   `${SITE_DISPLAY_NAME} trouble logging in`,
+  `${FULL_BRAND_NAME} trouble logging in`,
   `${SITE_DISPLAY_NAME} login issues`,
+  `${FULL_BRAND_NAME} login issues`,
   `${SITE_DISPLAY_NAME} account locked`,
+  `${FULL_BRAND_NAME} account locked`,
+  `${FULL_BRAND_NAME} reset login details`,
+  `${FULL_BRAND_NAME} login help`,
 ];
 
 /** Secure-access intent, brand-qualified and generic. */
 export const SECURE_ACCESS_KEYWORDS = [
   `${SITE_DISPLAY_NAME} secure banking`,
+  `${FULL_BRAND_NAME} secure banking`,
   "secure online banking login",
   "online banking login Ireland",
+  `${FULL_BRAND_NAME} online portal`,
+  `${FULL_BRAND_NAME} personal banking login`,
+  `${FULL_BRAND_PLURAL} internet banking Ireland`,
+  `${SITE_DISPLAY_NAME} internet banking Ireland personal`,
 ];
 
 function mergeKeywords(...lists) {

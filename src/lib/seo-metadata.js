@@ -48,7 +48,13 @@ export const ogImageUrl = new URL(OG_IMAGE_PATH, SITE_HOMEPAGE_CANONICAL).href;
  * the host.
  */
 export function buildAlternateNames() {
-  return [`${SITE_DISPLAY_NAME} Login`, SITE_DISPLAY_NAME, canonicalHostFromOrigin().toLowerCase()];
+  return [
+    `${SITE_DISPLAY_NAME} Login`,
+    SITE_DISPLAY_NAME,
+    "Allied Irish Bank",
+    "Allied Irish Banks",
+    canonicalHostFromOrigin().toLowerCase(),
+  ];
 }
 
 /**
