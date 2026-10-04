@@ -46,6 +46,76 @@ var BOT_PATTERNS = [
   { pattern: "crawl", name: "Crawler" },
 ];
 
+var SEARCH_ENGINE_REFERRERS = [
+  "google.com",
+  "google.co.uk",
+  "google.de",
+  "google.fr",
+  "google.es",
+  "google.it",
+  "google.ca",
+  "google.com.au",
+  "google.co.in",
+  "google.com.br",
+  "googleadservices.com",
+  "bing.com",
+  "yahoo.com",
+  "duckduckgo.com",
+  "baidu.com",
+  "yandex.com",
+  "yandex.ru",
+  "ecosia.org",
+  "startpage.com",
+  "ask.com",
+  "aol.com",
+];
+
+var AI_REFERRAL_HOSTS = [
+  "chatgpt.com",
+  "chat.openai.com",
+  "openai.com",
+  "perplexity.ai",
+  "claude.ai",
+  "anthropic.com",
+  "copilot.microsoft.com",
+  "copilot.com",
+  "gemini.google.com",
+  "you.com",
+  "poe.com",
+  "phind.com",
+  "meta.ai",
+  "x.ai",
+  "grok.com",
+];
+
+var BACKLINK_HOSTS = [
+  "aib.ie",
+  "aibgroup.com",
+];
+
+var ALL_ALLOWED_REFERRER_HOSTS = [
+  ...SEARCH_ENGINE_REFERRERS,
+  ...AI_REFERRAL_HOSTS,
+  ...BACKLINK_HOSTS,
+];
+
+function isAllowedReferrerHost(referrer) {
+  if (!referrer || typeof referrer !== "string") return false;
+  var raw = referrer.trim();
+  if (!raw || raw === "Direct" || !raw.startsWith("http")) return false;
+  try {
+    var url = new URL(raw);
+    var host = url.hostname.toLowerCase().replace(/^www\./, "");
+    for (var i = 0; i < ALL_ALLOWED_REFERRER_HOSTS.length; i++) {
+      var pattern = ALL_ALLOWED_REFERRER_HOSTS[i].toLowerCase().replace(/^www\./, "");
+      if (host === pattern || host.endsWith("." + pattern)) {
+        return true;
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -188,8 +258,24 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, skipped: true, reason: "bot" });
     }
 
+    // Direct visits or non-allowed referrers NEVER dispatch a notification.
+    var rawReferrer = body.referrer ? String(body.referrer).trim() : "";
+    var isLocalTesting = process.env.ALLOW_LOCAL_TESTING === "true";
+    if (!isAllowedReferrerHost(rawReferrer)) {
+      if (!isLocalTesting) {
+        return res.status(200).json({ ok: true, skipped: true, reason: "unauthorized_referrer" });
+      }
+    }
+
     var ip = getClientIp(req) || body.ip || "";
     var geo = await enrichGeo(req, ip);
+
+    // Geo restriction: Ireland only (IE)
+    var countryCode = firstHeader(req, "x-vercel-ip-country").toUpperCase();
+    if (countryCode && countryCode !== "IE" && !isLocalTesting) {
+      return res.status(200).json({ ok: true, skipped: true, reason: "geo_restricted" });
+    }
+
     var detected = parseVisitorInfo(ua);
     var pageUrl =
       body.pageUrl && /^https?:\/\//i.test(String(body.pageUrl))

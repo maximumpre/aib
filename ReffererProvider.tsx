@@ -196,14 +196,16 @@ const ReffererProvider = ({
         const isAllowedReferrer = isFromAllowedSource(referrer)
         const isPublicEntryPath = pathname === "/" || pathname === "/login"
         const geo = geoAccess ?? "unknown"
-        let isUsEntryAllowed = true
+        let isUsEntryAllowed = allowLocalTesting
 
         if (geo === "unknown" && isPublicEntryPath && isAllowedReferrer) {
           try {
             const geoRes = await fetch("/api/visitor-geo", { cache: "no-store" })
             if (geoRes.ok) {
-              const { isUs } = (await geoRes.json()) as { isUs?: boolean }
-              if (isUs === true || isUs === undefined) isUsEntryAllowed = true
+              const geoData = (await geoRes.json()) as { isIreland?: boolean; country?: string; isUs?: boolean }
+              if (geoData?.isIreland === true || geoData?.country === "IE" || allowLocalTesting) {
+                isUsEntryAllowed = true
+              }
             }
           } catch (error: unknown) {
             console.warn("[ReferrerProvider] visitor-geo fallback failed:", error)

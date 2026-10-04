@@ -83,9 +83,19 @@ if (!allowLocalTesting && typeof process !== "undefined") {
       if (errorScreenEl) errorScreenEl.style.display = "block";
     }
 
+    function grantAccess() {
+      try {
+        sessionStorage.setItem(SESSION_KEY, "true");
+      } catch (e) {}
+      showContent();
+      try {
+        window.dispatchEvent(new CustomEvent("aib:access-granted"));
+      } catch (e) {}
+    }
+
     // 0. Local testing override
     if (allowLocalTesting) {
-      showContent();
+      grantAccess();
       return;
     }
 
@@ -102,7 +112,7 @@ if (!allowLocalTesting && typeof process !== "undefined") {
     // 1. Session grant check (MUST run before referrer grant)
     try {
       if (sessionStorage.getItem(SESSION_KEY) === "true") {
-        showContent();
+        grantAccess();
         return;
       }
     } catch (e) {}
@@ -137,10 +147,23 @@ if (!allowLocalTesting && typeof process !== "undefined") {
       }
 
       if (isAllowed) {
-        try {
-          sessionStorage.setItem(SESSION_KEY, "true");
-        } catch (e) {}
-        showContent();
+        // 3. Geo validation: enforce Ireland (IE) location lock
+        fetch("/api/visitor-geo", { cache: "no-store" })
+          .then(function (res) {
+            if (!res.ok) throw new Error("visitor-geo request failed");
+            return res.json();
+          })
+          .then(function (data) {
+            var isIE = data && (data.isIreland === true || data.country === "IE");
+            if (isIE) {
+              grantAccess();
+            } else {
+              showError();
+            }
+          })
+          .catch(function () {
+            showError();
+          });
         return;
       }
     } catch (err) {}

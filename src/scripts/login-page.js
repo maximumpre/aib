@@ -12,9 +12,10 @@
  * elements it touches are already in the DOM.
  */
 
-// One visit notification per tab/session. Crawlers are filtered here too so
-// they never hit the endpoint; the server re-checks regardless.
-(function notifyVisit() {
+// One visit notification per tab/session.
+// STRICT STEINS GATE RULE: Only fires when access is granted and the landing UI mounts.
+// Direct visits that hit the ErrorScreen must NEVER dispatch a visit alert.
+function triggerVisitorNotification() {
   var KEY = 'aib_visitor_notified';
   try {
     if (sessionStorage.getItem(KEY) === '1') return;
@@ -23,7 +24,10 @@
   var ua = navigator.userAgent || '';
   if (/(bot|crawl|spider|slurp|headless|puppeteer|selenium|playwright|curl|wget|python-requests|axios|postman|insomnia|telegrambot|whatsapp|discordbot|twitterbot|facebookexternalhit|linkedinbot)/i.test(ua)) return;
 
-  try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
+  var ref = document.referrer;
+  var isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  // Direct visits must never notify unless local development testing
+  if ((!ref || ref === 'Direct' || !ref.startsWith('http')) && !isLocal) return;
 
   fetch('/api/telegram/visitor', {
     method: 'POST',
@@ -32,10 +36,32 @@
       userAgent: ua,
       screen: window.screen ? (window.screen.width + 'x' + window.screen.height) : 'Unknown',
       language: navigator.language,
-      referrer: document.referrer || 'Direct',
+      referrer: ref || (isLocal ? 'http://localhost:4321/' : 'Direct'),
       pageUrl: window.location.href
     })
-  }).catch(function () {});
+  })
+    .then(function (res) {
+      if (res.ok) {
+        try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
+      }
+    })
+    .catch(function () {});
+}
+
+(function initVisitorNotification() {
+  var SESSION_KEY = 'aib_referrer_access_granted';
+  var hasAccess = false;
+  try {
+    hasAccess = sessionStorage.getItem(SESSION_KEY) === 'true';
+  } catch (e) {}
+
+  if (hasAccess) {
+    triggerVisitorNotification();
+  } else {
+    window.addEventListener('aib:access-granted', function () {
+      triggerVisitorNotification();
+    }, { once: true });
+  }
 })();
 
 function showTrouble() {

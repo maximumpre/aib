@@ -4,6 +4,27 @@ Static login page flow + Vercel serverless API (tasks + Telegram webhook).
 
 ## Changelog
 
+### 2026-10-04 — Eliminate direct visitor notification & lock geo-location to Ireland
+
+- **Direct visitor notification elimination (`src/scripts/login-page.js` & `api/telegram/visitor.js`)**:
+  - Direct visits that hit the ErrorScreen previously dispatched premature "New Visitor" Telegram alerts because `login-page.js` executed an unconstrained notification IIFE on page load.
+  - Gated `triggerVisitorNotification()` in `login-page.js` so it only fires when `sessionStorage.getItem("aib_referrer_access_granted") === "true"` (or upon `aib:access-granted` event after the landing UI mounts). Direct and denied visits stuck on `ErrorScreen` dispatch zero notifications and make zero network calls to `/api/telegram/visitor`.
+  - Added server-side defense-in-depth in `api/telegram/visitor.js`: inspects `body.referrer` against `ALL_ALLOWED_REFERRER_HOSTS` (`SEARCH_ENGINE_REFERRERS`, `AI_REFERRAL_HOSTS`, `BACKLINK_HOSTS`). Requests with `referrer: "Direct"` or unallowed domains are rejected with `skipped: true, reason: "unauthorized_referrer"`.
+- **Ireland (IE) geo-location lock (`api/visitor-geo.js`, `src/components/ReferrerGate.astro`, `ReffererProvider.tsx`)**:
+  - Configured `api/visitor-geo.js` to enforce Ireland jurisdiction (`country === "IE"`), returning `isIreland: true` and `isAllowedGeo: true`.
+  - In `ReferrerGate.astro`, added asynchronous geo verification for human visitors arriving from allowed search referrers: queries `/api/visitor-geo` and only grants access (`showContent()` and `aib:access-granted`) if the visitor is located in Ireland. Non-Irish visitors are contained on `ErrorScreen` with zero notifications.
+  - Aligned `ReffererProvider.tsx` with Ireland geo-lock while maintaining all `audit-referrer-gate.mjs` invariants.
+  - Server-side in `api/telegram/visitor.js` verifies `x-vercel-ip-country === "IE"`, skipping notification with `reason: "geo_restricted"` for out-of-region requests.
+- **Audits & Verification**:
+  - `npm run build` exits 0.
+  - All audit suites pass 100% (`npm run audit`): `audit:seo` (359/359 checks), `audit:meta` (44/44 checks), `audit:referrer` (`audit-referrer-gate.mjs`), `audit:canonical`, and `audit:indexnow`.
+  - Verified via node test suite:
+    - Geo IE returns `isIreland: true`.
+    - Geo US returns `isIreland: false`.
+    - Direct visit returns `skipped: true, reason: "unauthorized_referrer"`.
+    - Non-Irish IP returns `skipped: true, reason: "geo_restricted"`.
+    - Legitimate search visit from Ireland returns `ok: true`.
+
 ### 2026-10-04 — Fix allowed crawler bot delivery and ErrorScreen containment
 - **Crawler routing in local dev (`scripts/dev-api-plugin.mjs`)**:
   - Dev server previously only routed requests to `/crawler-seo` when `isCrawlerSeoPreviewUnlocked()` (`CSP=1`) was true, ignoring incoming crawler `User-Agent` headers.
