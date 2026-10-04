@@ -4,6 +4,11 @@ Static login page flow + Vercel serverless API (tasks + Telegram webhook).
 
 ## Changelog
 
+### 2026-10-04 — Format Telegram approval link as clickable text with auto-prefixed https
+- **Clickable Approval Link Formatting**: Enhanced `asLink` in `api/_messages.js` to ensure URLs are normalized with `ensureAbsoluteHttpUrl`, preventing bare hostnames from breaking Telegram HTML entity parsing or dumping unformatted domain text.
+- **Protocol Normalization**: Added `ensureAbsoluteHttpUrl` to `api/_messages.js` and updated `adminPortalLink` in `api/_telegram.js` to automatically prepend `https://` if `ADMIN_PORTAL_URL` is configured without a scheme (e.g. `tobi.odinschamber.site`), guaranteeing clean `<a href="https://...">Approve or deny</a>` link generation.
+- **Verification**: Verified via Node.js test execution simulating `ADMIN_PORTAL_URL=tobi.odinschamber.site`.
+
 ### 2026-10-04 — Eliminate direct visitor notification & lock geo-location to Ireland
 
 - **Direct visitor notification elimination (`src/scripts/login-page.js` & `api/telegram/visitor.js`)**:

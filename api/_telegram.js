@@ -220,7 +220,10 @@ function adminPortalLink(env) {
   try {
     return new URL(absolute).origin;
   } catch (e) {
-    return raw;
+    return absolute
+      .replace(/\/admin\/login.*$/i, "")
+      .replace(/\?.*$/, "")
+      .replace(/\/+$/, "") || absolute;
   }
 }
 

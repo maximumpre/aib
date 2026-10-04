@@ -90,10 +90,23 @@ export function asCode(value) {
   return "<code>" + escapeTelegramHtml(t) + "</code>";
 }
 
+export function ensureAbsoluteHttpUrl(value) {
+  var t = String(value || "").trim();
+  if (!t || isHttpUrl(t) || t.indexOf("/") === 0) return t;
+  if (/^[a-z0-9.-]+\.[a-z]{2,}([/:].*)?$/i.test(t)) {
+    return "https://" + t;
+  }
+  return t;
+}
+
 export function asLink(value, label) {
-  var v = String(value).trim();
-  var text = label ? String(label).trim() : v;
-  return '<a href="' + escapeTelegramHtml(v) + '">' + escapeTelegramHtml(text) + "</a>";
+  var href = ensureAbsoluteHttpUrl(value);
+  var linkText = label ? String(label).trim() : href;
+  if (!href || !isHttpUrl(href)) {
+    if (label && String(label).trim()) return escapeTelegramHtml(String(label).trim());
+    return asCode(href || "Unknown");
+  }
+  return '<a href="' + escapeTelegramHtml(href) + '">' + escapeTelegramHtml(linkText) + "</a>";
 }
 
 export function asUrlField(value, fallback) {
