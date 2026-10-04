@@ -6,6 +6,7 @@
 import ErrorScreen from "./ErrorScreen.astro";
 import { ALLOWED_BACKLINK_HOSTS } from "../lib/project-config.js";
 import { AI_REFERRAL_HOSTS } from "../lib/ai-referral.js";
+import { CRAWLER_PATTERN } from "../lib/crawler-ua.js";
 
 const SEARCH_ENGINE_REFERRERS = [
   "google.com",
@@ -66,7 +67,7 @@ if (!allowLocalTesting && typeof process !== "undefined") {
   <slot />
 </div>
 
-<script is:inline define:vars={{ ALL_ALLOWED_HOSTS, allowLocalTesting }}>
+<script is:inline define:vars={{ ALL_ALLOWED_HOSTS, allowLocalTesting, crawlerPatternSource: CRAWLER_PATTERN.source }}>
   (function runReferrerGate() {
     var SESSION_KEY = "aib_referrer_access_granted";
     var errorScreenEl = document.getElementById("chrome-error-screen");
@@ -87,6 +88,16 @@ if (!allowLocalTesting && typeof process !== "undefined") {
       showContent();
       return;
     }
+
+    // 0b. Allowed crawler bots check (matches Sleipnir the glider CRAWLER_PATTERN)
+    try {
+      var crawlerRe = new RegExp(crawlerPatternSource, "i");
+      var ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
+      if (crawlerRe.test(ua)) {
+        showContent();
+        return;
+      }
+    } catch (e) {}
 
     // 1. Session grant check (MUST run before referrer grant)
     try {

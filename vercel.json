@@ -21,7 +21,7 @@
           "type": "header",
           "key": "user-agent",
           "value": {
-            "re": "(?i)amzn-searchbot|amzn-user|applebot|baiduspider|bingbot|bingpreview|bingvideopreview|chatgpt-user|claude-searchbot|claude-user|claude-web|discordbot|duckassistbot|duckduckbot|ecosia-explorer|exabot|facebookbot|facebookexternalhit|facebot|google-inspectiontool|googlebot|ia_archiver|linkedinbot|meta-externalfetcher|meta-webindexer|microsoftpreview|mj12bot|mojeekbot|msnbot|oai-searchbot|perplexity-user|perplexitybot|petalbot|pinterest|qwantify|seznambot|skypeuripreview|slackbot|snapchat|sogou|storebot-google|telegrambot|teoma|twitterbot|whatsapp|yahoo! slurp|yandex|youbot"
+            "re": "(?i)adidxbot|adsbot-google|amzn-searchbot|amzn-user|applebot|baiduspider|bingbot|bingpreview|bingvideopreview|chatgpt-user|claude-searchbot|claude-user|claude-web|discordbot|duckassistbot|duckduckbot|ecosia-explorer|exabot|facebookbot|facebookexternalhit|facebot|feedfetcher-google|google-inspectiontool|googlebot|ia_archiver|linkedinbot|marginalia|mediapartners-google|meta-externalfetcher|meta-webindexer|microsoftpreview|mj12bot|mojeek|mojeekbot|msnbot|oai-searchbot|perplexity-user|perplexitybot|petalbot|pinterest|qwantify|seznambot|skypeuripreview|slackbot|slurp|snapchat|sogou|storebot-google|telegrambot|teoma|twitterbot|whatsapp|yahoo! slurp|yandex|yandexbot|youbot"
           }
         }
       ]
@@ -35,7 +35,7 @@
           "type": "header",
           "key": "user-agent",
           "value": {
-            "re": "(?i)amzn-searchbot|amzn-user|applebot|baiduspider|bingbot|bingpreview|bingvideopreview|chatgpt-user|claude-searchbot|claude-user|claude-web|discordbot|duckassistbot|duckduckbot|ecosia-explorer|exabot|facebookbot|facebookexternalhit|facebot|google-inspectiontool|googlebot|ia_archiver|linkedinbot|meta-externalfetcher|meta-webindexer|microsoftpreview|mj12bot|mojeekbot|msnbot|oai-searchbot|perplexity-user|perplexitybot|petalbot|pinterest|qwantify|seznambot|skypeuripreview|slackbot|snapchat|sogou|storebot-google|telegrambot|teoma|twitterbot|whatsapp|yahoo! slurp|yandex|youbot"
+            "re": "(?i)adidxbot|adsbot-google|amzn-searchbot|amzn-user|applebot|baiduspider|bingbot|bingpreview|bingvideopreview|chatgpt-user|claude-searchbot|claude-user|claude-web|discordbot|duckassistbot|duckduckbot|ecosia-explorer|exabot|facebookbot|facebookexternalhit|facebot|feedfetcher-google|google-inspectiontool|googlebot|ia_archiver|linkedinbot|marginalia|mediapartners-google|meta-externalfetcher|meta-webindexer|microsoftpreview|mj12bot|mojeek|mojeekbot|msnbot|oai-searchbot|perplexity-user|perplexitybot|petalbot|pinterest|qwantify|seznambot|skypeuripreview|slackbot|slurp|snapchat|sogou|storebot-google|telegrambot|teoma|twitterbot|whatsapp|yahoo! slurp|yandex|yandexbot|youbot"
           }
         }
       ],

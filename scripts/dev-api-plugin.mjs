@@ -19,6 +19,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { CRAWLER_SEO_PATH } from "../src/lib/site-config.js";
 import { isCrawlerSeoPreviewUnlocked } from "../src/lib/crawler-seo-preview.js";
+import { isCrawlerUa, isDeniedBotUa } from "../src/lib/crawler-ua.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -262,11 +263,27 @@ function attachCrawlerSeoPreview(server, { twinPath }) {
     const raw = String(req.url || "/");
     const pathname = raw.split("?")[0];
     if (!LANDING_ENTRIES.has(pathname)) return next();
-    if (!isCrawlerSeoPreviewUnlocked()) return next();
 
-    const url = new URL(raw, "http://localhost");
-    req.url = twinPath + url.search;
-    res.setHeader("x-crawler-seo-page", "1");
+    const ua = String(req.headers["user-agent"] || "");
+
+    // Denied bots (Ahrefs, Semrush, scanners) receive 200 ErrorScreen with noindex
+    if (isDeniedBotUa(ua)) {
+      res.statusCode = 200;
+      res.setHeader("X-Robots-Tag", "noindex, nofollow");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      const errorHtml = `<!DOCTYPE html><html><head><meta name="robots" content="noindex, nofollow"><title>This site can&#39;t be reached</title></head><body style="background:#202124;color:#9AA0A6;font-family:sans-serif;padding:48px;"><h1>This site can&#39;t be reached</h1><p>ERR_NAME_NOT_RESOLVED</p></body></html>`;
+      res.end(errorHtml);
+      return;
+    }
+
+    // Allowed crawler bot OR local CSP preview unlock
+    if (isCrawlerUa(ua) || isCrawlerSeoPreviewUnlocked()) {
+      const url = new URL(raw, "http://localhost");
+      req.url = twinPath + url.search;
+      res.setHeader("x-crawler-seo-page", "1");
+      return next();
+    }
+
     next();
   });
 }

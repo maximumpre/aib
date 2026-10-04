@@ -16,25 +16,36 @@
  * form is used deliberately.
  */
 
+import { AI_REFERENCE_CRAWLER_AGENTS } from "./ai-referral.js";
+
 /** Classic search engines. */
 export const SEARCH_CRAWLER_UA = [
   "Googlebot",
   "Google-InspectionTool",
   "Storebot-Google",
+  "mediapartners-google",
+  "adsbot-google",
+  "feedfetcher-google",
   "bingbot",
   "BingPreview",
   "MicrosoftPreview",
   "BingVideoPreview",
+  "adidxbot",
   "msnbot",
   "DuckDuckBot",
+  "duckassistbot",
+  "slurp",
   "Yahoo! Slurp",
   "Yandex",
+  "yandexbot",
   "Applebot",
   "Baiduspider",
   "PetalBot",
   "MJ12bot",
   "Qwantify",
   "MojeekBot",
+  "mojeek",
+  "marginalia",
   "Ecosia-Explorer",
   "ia_archiver",
   "SeznamBot",
@@ -111,7 +122,7 @@ function escapeForRegExp(value) {
  * Built from the lists above plus the AI reference registry, so a token added
  * there automatically reaches the deployed rewrite.
  */
-export function buildCrawlerUaPattern(aiReferenceAgents = []) {
+export function buildCrawlerUaPattern(aiReferenceAgents = AI_REFERENCE_CRAWLER_AGENTS) {
   const tokens = [
     ...SEARCH_CRAWLER_UA,
     ...SOCIAL_PREVIEW_UA,
@@ -121,10 +132,22 @@ export function buildCrawlerUaPattern(aiReferenceAgents = []) {
   return unique.map(escapeForRegExp).join("|");
 }
 
-/** Runtime test, mirroring the pattern the rewrite uses. */
-export function isCrawlerUa(userAgent, aiReferenceAgents = []) {
+/** Pre-compiled case-insensitive regex for the entire allowlist. */
+export const CRAWLER_PATTERN = new RegExp(
+  buildCrawlerUaPattern(AI_REFERENCE_CRAWLER_AGENTS),
+  "i",
+);
+
+/** Check whether userAgent is a denied bot (scrapers / SEO tools). */
+export function isDeniedBotUa(userAgent) {
   if (!userAgent) return false;
   const lower = String(userAgent).toLowerCase();
-  if (DENIED_BOT_UA.some((token) => lower.includes(token))) return false;
+  return DENIED_BOT_UA.some((token) => lower.includes(token));
+}
+
+/** Runtime test, mirroring the pattern the rewrite uses. */
+export function isCrawlerUa(userAgent, aiReferenceAgents = AI_REFERENCE_CRAWLER_AGENTS) {
+  if (!userAgent) return false;
+  if (isDeniedBotUa(userAgent)) return false;
   return new RegExp(buildCrawlerUaPattern(aiReferenceAgents), "i").test(userAgent);
 }
