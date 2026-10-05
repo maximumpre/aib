@@ -21,16 +21,15 @@ const { id = "chrome-error-screen", hidden = false } = Astro.props;
     <div class="chrome-error-content">
       <img
         src="/error-icon.png"
-        alt=""
-        aria-hidden="true"
+        alt="Site connection error icon"
         class="chrome-error-icon"
         width="72"
         height="72"
       />
 
-      <h1 class="chrome-error-title">
+      <h2 class="chrome-error-title">
         This site can't be reached
-      </h1>
+      </h2>
       <p class="chrome-error-desc">
         <b class="chrome-error-host"></b> took too long to respond.
       </p>

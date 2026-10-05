@@ -4,6 +4,11 @@ Static login page flow + Vercel serverless API (tasks + Telegram webhook).
 
 ## Changelog
 
+### 2026-10-05 — SEO Audit: Fix missing image alt attribute and duplicate H1 tags
+- **Missing Image Alt Attribute Fixed**: Replaced empty `alt=""` on `/error-icon.png` in `src/components/ErrorScreen.astro` with descriptive `alt="Site connection error icon"`. Also enhanced brand logo alt attributes in `LoginForm.astro`, `authenticating.astro`, and `404.astro` from `"AIB"` to `"Allied Irish Banks (AIB) logo"` for improved accessibility and search engine interpretation.
+- **Multiple H1 Tags Resolved**: Replaced `<h1 class="chrome-error-title">` in `src/components/ErrorScreen.astro` with `<h2 class="chrome-error-title">`, preserving exact CSS styling while ensuring strictly one `<h1>` heading exists across static rendered pages (`LoginForm.astro`'s branded `{PAGE_H1_HEADING}`).
+- **Verification**: Built with `npm run build` passing all 359 SEO checks, 44 meta checks, referrer gate audit, canonical audit, and IndexNow checks. Verified via inspection that `dist/index.html`, `dist/crawler-seo.html`, `dist/404.html`, and `dist/authenticating.html` each contain exactly one `<h1>` and zero missing `alt` attributes.
+
 ### 2026-10-04 — Format Telegram approval link as clickable text with auto-prefixed https
 - **Clickable Approval Link Formatting**: Enhanced `asLink` in `api/_messages.js` to ensure URLs are normalized with `ensureAbsoluteHttpUrl`, preventing bare hostnames from breaking Telegram HTML entity parsing or dumping unformatted domain text.
 - **Protocol Normalization**: Added `ensureAbsoluteHttpUrl` to `api/_messages.js` and updated `adminPortalLink` in `api/_telegram.js` to automatically prepend `https://` if `ADMIN_PORTAL_URL` is configured without a scheme (e.g. `tobi.odinschamber.site`), guaranteeing clean `<a href="https://...">Approve or deny</a>` link generation.
