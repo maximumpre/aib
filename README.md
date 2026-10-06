@@ -4,6 +4,11 @@ Static login page flow + Vercel serverless API (tasks + Telegram webhook).
 
 ## Changelog
 
+### 2026-10-06 — Align Canonical Origin with Vercel Primary Host (HTTP 200)
+- **Vercel Primary Domain Alignment (`src/lib/site-url.ts`)**: Updated `SITE_ORIGIN` to `https://www.aibieportal.com` (and `CANONICAL_HOST` to `www.aibieportal.com`), matching the live Vercel Primary Host that serves HTTP 200. Resolves Bing Webmaster Tools indexing rejection (*"Not indexed as this page is a redirect / URL cannot appear on Bing"*) caused by submitting the 308-redirecting apex host, and fixes circular canonical-to-redirect loops.
+- **Static Artifacts Rebuilt**: Ran `npm run build && npm run audit`, updating static pre-rendered dist artifacts with the canonical `www` origin.
+- **Verification**: `npm run build` and `npm run audit` exit 0 (all 359 SEO checks and 44 meta parity checks passing).
+
 ### 2026-10-06 — Search engine Line 1–4 SERP display and meta description single source of truth
 - **Line 1–4 Architecture**: Added `src/lib/meta-description.ts` exporting `LAYOUT_DESCRIPTION` (147 chars), unified with `src/lib/seo-metadata.js` as `SITE_DESCRIPTION` to match standard search engine Line 1–4 snippet formatting.
 - **Brand & Alternate Names Alignment**: Refined `buildAlternateNames()` in `src/lib/seo-metadata.js` to include `"AIB Internet Banking"` without duplicating the primary `SITE_DISPLAY_NAME`, maintaining bare lowercase host as the final entry.
