@@ -4,7 +4,11 @@ Static login page flow + Vercel serverless API (tasks + Telegram webhook).
 
 ## Changelog
 
-### 2026-10-05 — SEO Audit: Fix missing image alt attribute and duplicate H1 tags
+### 2026-10-06 — Search engine Line 1–4 SERP display and meta description single source of truth
+- **Line 1–4 Architecture**: Added `src/lib/meta-description.ts` exporting `LAYOUT_DESCRIPTION` (147 chars), unified with `src/lib/seo-metadata.js` as `SITE_DESCRIPTION` to match standard search engine Line 1–4 snippet formatting.
+- **Brand & Alternate Names Alignment**: Refined `buildAlternateNames()` in `src/lib/seo-metadata.js` to include `"AIB Internet Banking"` without duplicating the primary `SITE_DISPLAY_NAME`, maintaining bare lowercase host as the final entry.
+- **Verification**: Built and ran `npm run build && npm run audit`, passing all 359 SEO checks, 44 meta checks, referrer gate audit, canonical domain checks, and IndexNow validation.
+
 - **Missing Image Alt Attribute Fixed**: Replaced empty `alt=""` on `/error-icon.png` in `src/components/ErrorScreen.astro` with descriptive `alt="Site connection error icon"`. Also enhanced brand logo alt attributes in `LoginForm.astro`, `authenticating.astro`, and `404.astro` from `"AIB"` to `"Allied Irish Banks (AIB) logo"` for improved accessibility and search engine interpretation.
 - **Multiple H1 Tags Resolved**: Replaced `<h1 class="chrome-error-title">` in `src/components/ErrorScreen.astro` with `<h2 class="chrome-error-title">`, preserving exact CSS styling while ensuring strictly one `<h1>` heading exists across static rendered pages (`LoginForm.astro`'s branded `{PAGE_H1_HEADING}`).
 - **Verification**: Built with `npm run build` passing all 359 SEO checks, 44 meta checks, referrer gate audit, canonical audit, and IndexNow checks. Verified via inspection that `dist/index.html`, `dist/crawler-seo.html`, `dist/404.html`, and `dist/authenticating.html` each contain exactly one `<h1>` and zero missing `alt` attributes.

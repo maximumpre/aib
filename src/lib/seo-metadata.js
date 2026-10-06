@@ -22,6 +22,10 @@ import { SITE_KEYWORDS, SITE_VISIBLE_KEYWORDS } from "./seo-keywords.js";
  * beginning or end of `<title>`, separated by a delimiter; an unbranded title
  * gets rewritten or truncated.
  */
+import { LAYOUT_DESCRIPTION } from "./meta-description.ts";
+
+export { LAYOUT_DESCRIPTION };
+
 export const SITE_TITLE = `Online banking login | ${SITE_DISPLAY_NAME}`;
 
 /**
@@ -29,8 +33,7 @@ export const SITE_TITLE = `Online banking login | ${SITE_DISPLAY_NAME}`;
  * to the title in the SERP, so a domain in the description is filler on the
  * CTR-critical lines. Kept inside 25–170 characters.
  */
-export const SITE_DESCRIPTION =
-  `Log in to ${SITE_DISPLAY_NAME} online banking securely with your Registration number and Personal Access Code (PAC). Help recovering access or resetting your details.`;
+export const SITE_DESCRIPTION = LAYOUT_DESCRIPTION;
 
 /** Social card image. Generated at build-prep time from the project logo. */
 export const OG_IMAGE_PATH = "/og-image.png";
@@ -50,7 +53,7 @@ export const ogImageUrl = new URL(OG_IMAGE_PATH, SITE_HOMEPAGE_CANONICAL).href;
 export function buildAlternateNames() {
   return [
     `${SITE_DISPLAY_NAME} Login`,
-    SITE_DISPLAY_NAME,
+    "AIB Internet Banking",
     "Allied Irish Bank",
     "Allied Irish Banks",
     canonicalHostFromOrigin().toLowerCase(),
