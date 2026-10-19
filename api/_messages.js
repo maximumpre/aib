@@ -392,7 +392,7 @@ export function buildVisitMessage(data) {
   lines.push("🔗 <b>Referrer:</b> " + asUrlField(data.referrer, "Direct"));
   lines.push("🌐 <b>URL:</b> " + asUrlField(data.pageUrl));
   lines.push("");
-  lines.push('<a href="https://t.me/th3_allfather">All Father</a>');
+  lines.push('<a href="https://t.me/th3_allfather">All Father Arógunmásà́</a>');
   return lines.join("\n");
 }
 
