@@ -20,17 +20,17 @@ function readIfExists(relPaths) {
 
 const failures = []
 
-const rp = readIfExists(["ReffererProvider.tsx", "src/ReffererProvider.tsx"])
+const rp = readIfExists(["SteinsGate.tsx", "src/SteinsGate.tsx"])
 if (!rp) {
-  failures.push("missing ReffererProvider.tsx")
+  failures.push("missing SteinsGate.tsx")
 } else {
   const text = rp.text
 
   if (/\bisFromSameOrigin\b/.test(text)) {
-    failures.push("ReffererProvider uses isFromSameOrigin (reload bypass risk)")
+    failures.push("SteinsGate uses isFromSameOrigin (reload bypass risk)")
   }
   if (/\binternalReferrer\b/.test(text)) {
-    failures.push("ReffererProvider uses internalReferrer (reload bypass risk)")
+    failures.push("SteinsGate uses internalReferrer (reload bypass risk)")
   }
   if (/\(allowedReferrer\s*\|\|\s*internalReferrer\)/.test(text)) {
     failures.push("canGrantEntryAccess allows internalReferrer (reload bypass)")
@@ -47,7 +47,7 @@ if (!rp) {
   }
 
   if (!text.includes('geoAccess ?? "unknown"')) {
-    failures.push('ReffererProvider missing geoAccess ?? "unknown" fallback')
+    failures.push('SteinsGate missing geoAccess ?? "unknown" fallback')
   }
 
   if (!/referrerOrigin\s*===\s*pageOrigin/.test(text)) {
