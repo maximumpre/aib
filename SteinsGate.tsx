@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, type ReactNode, useEffect, useState } from "react"
+import { createContext, useContext, type ReactNode, useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 
 import ErrorScreen from "@/components/ErrorScreen"
@@ -11,6 +11,7 @@ import { isUngatedSeoPath } from "@/lib/seo-public-paths"
 import { detectBotType, getSpecificBotType, isDeniedBotUserAgent, isTrustedCrawlerUserAgent } from "@/utils/botDetection"
 
 const ALLOWED_REFERRER_HOSTS = [
+  // Google Core & Global ccTLDs + Ads
   "google.com",
   "www.google.com",
   "google.co.uk",
@@ -23,23 +24,77 @@ const ALLOWED_REFERRER_HOSTS = [
   "google.co.in",
   "google.com.br",
   "googleadservices.com",
+
+  // Microsoft Bing & MSN
   "bing.com",
   "www.bing.com",
+  "bing.net",
+  "msn.com",
+  "www.msn.com",
+
+  // Yahoo Core & International
   "yahoo.com",
+  "search.yahoo.com",
+  "ca.search.yahoo.com",
+  "uk.search.yahoo.com",
+  "de.search.yahoo.com",
+  "yahoo.co.jp",
+
+  // Major Privacy & General Search Engines
   "duckduckgo.com",
+  "brave.com",
+  "search.brave.com",
+  "ecosia.org",
+  "startpage.com",
+  "qwant.com",
+  "kagi.com",
+  "ask.com",
+  "aol.com",
+
+  // Regional Search Leaders
   "baidu.com",
   "yandex.com",
   "yandex.ru",
-  "ecosia.org",
-  "startpage.com",
-  "ask.com",
-  "aol.com",
+  "yandex.by",
+  "yandex.kz",
+  "seznam.cz",
+  "naver.com",
+  "sogou.com",
+
+  // Independent & Metasearch Engines
+  "mojeek.com",
+  "swisscows.com",
+  "presearch.com",
+  "dogpile.com",
+  "webcrawler.com",
+  "lycos.com",
+  "gibiru.com",
+
+  // AI Referral Platforms
   ...AI_REFERRAL_HOSTS,
 ]
 
 export const BotAccessContext = createContext(false)
 
-/** Customize per project, e.g. `{your_project}_referrer_access_granted` */
+export type SteinsGateStatus = "evaluating" | "granted" | "cloaked"
+
+export interface SteinsGateContextValue {
+  status: SteinsGateStatus
+  isVerifiedBot: boolean
+  isGranted: boolean
+}
+
+export const SteinsGateContext = createContext<SteinsGateContextValue>({
+  status: "evaluating",
+  isVerifiedBot: false,
+  isGranted: false,
+})
+
+export function useSteinsGate(): SteinsGateContextValue {
+  return useContext(SteinsGateContext)
+}
+
+/** Customize per project — unique per deployment, e.g. `acme_referrer_access_granted` (never copy this kit default verbatim). */
 const ACCESS_GRANTED_SESSION_KEY = "aib_referrer_access_granted"
 const GOOGLEBOT_VERIFY_TIMEOUT_MS = 10000
 
@@ -47,10 +102,37 @@ const normalizeReferrerValue = (value: string) => value.toLowerCase().replace(/^
 
 const normalizeOrigin = (value: string) => value.toLowerCase().replace(/^(https?:\/\/)www\./, "$1")
 
+const ALLOWED_ANDROID_APP_PACKAGES = [
+  "com.google.android.googlequicksearchbox",
+  "com.google.android.apps.searchlite",
+  "com.google.android.gm",
+  "com.microsoft.bing",
+  "com.microsoft.emmx",
+  "com.duckduckgo.mobile.android",
+  "com.android.chrome",
+  "org.mozilla.firefox",
+  "com.sec.android.app.sbrowser",
+  "com.brave.browser",
+  "com.opera.browser",
+  "com.yandex.browser",
+  "com.yandex.searchapp",
+  "com.yahoo.mobile.client.android.search",
+]
+
 function isFromAllowedSource(referrer: string): boolean {
-  if (!referrer || !referrer.startsWith("http")) return false
+  if (!referrer) return false
+  const trimmed = referrer.trim()
+
+  if (trimmed.startsWith("android-app://")) {
+    const pkg = trimmed.slice("android-app://".length).split("/")[0].toLowerCase()
+    return ALLOWED_ANDROID_APP_PACKAGES.some(
+      (allowed) => pkg === allowed || pkg.startsWith(`${allowed}.`),
+    )
+  }
+
+  if (!trimmed.startsWith("http")) return false
   try {
-    const referrerUrl = new URL(referrer)
+    const referrerUrl = new URL(trimmed)
     const referrerOrigin = normalizeOrigin(referrerUrl.origin)
 
     // Reload / ErrorScreen reload sets same-origin referrer — must not grant search entry.
@@ -93,22 +175,24 @@ function isFromAllowedSource(referrer: string): boolean {
   }
 }
 
-type ReffererProviderProps = {
+export type SteinsGateProps = {
   children: ReactNode
   isBot?: boolean
   geoAccess?: GeoUsOnlyHeaderValue
   allowLocalTesting?: boolean
 }
 
-const ReffererProvider = ({
+export const SteinsGate = ({
   children,
   isBot: serverIsBot,
   geoAccess,
   allowLocalTesting = false,
-}: ReffererProviderProps) => {
-  const [isLoading, setIsLoading] = useState(!allowLocalTesting)
-  const [isVerifiedBot, setIsVerifiedBot] = useState(false)
-  const [isFromSearch, setIsFromSearch] = useState(allowLocalTesting)
+}: SteinsGateProps) => {
+  const initialStatus: SteinsGateStatus =
+    allowLocalTesting || Boolean(serverIsBot) ? "granted" : "evaluating"
+
+  const [gateStatus, setGateStatus] = useState<SteinsGateStatus>(initialStatus)
+  const [isVerifiedBot, setIsVerifiedBot] = useState(Boolean(serverIsBot))
 
   const pathname = usePathname()
 
@@ -143,7 +227,7 @@ const ReffererProvider = ({
               }
             }
           } catch (error: unknown) {
-            console.warn("[ReferrerProvider] Googlebot verify fallback (UA allowed):", error)
+            console.warn("[SteinsGate] Googlebot verify fallback (UA allowed):", error)
           }
         }
 
@@ -160,7 +244,7 @@ const ReffererProvider = ({
 
       try {
         if (allowLocalTesting) {
-          setIsFromSearch(true)
+          setGateStatus("granted")
           return
         }
 
@@ -168,47 +252,56 @@ const ReffererProvider = ({
         // Ahrefs / Semrush / scanners — never verified bot, never human children
         if (isDeniedBotUserAgent(ua)) {
           setIsVerifiedBot(false)
-          setIsFromSearch(false)
+          setGateStatus("cloaked")
           return
         }
 
         if (serverIsBot) {
           setIsVerifiedBot(true)
+          setGateStatus("granted")
           return
         }
 
         if (isTrustedCrawlerUserAgent(ua)) {
           setIsVerifiedBot(true)
+          setGateStatus("granted")
           return
         }
-
-        const referrer = document.referrer
 
         const hasSessionAccess =
           typeof window !== "undefined" &&
           window.sessionStorage.getItem(ACCESS_GRANTED_SESSION_KEY) === "1"
 
+        const referrer = document.referrer
+        const isAllowedReferrer = isFromAllowedSource(referrer)
+
+        // Continued access after search entry (UID → password → verify).
+        // Internal nav has same-origin document.referrer — must honor session BEFORE purge.
         if (hasSessionAccess) {
-          setIsFromSearch(true)
+          setGateStatus("granted")
           return
         }
 
-        const isAllowedReferrer = isFromAllowedSource(referrer)
-        const isPublicEntryPath = pathname === "/" || pathname === "/login"
+        // No session + no search referrer: keep storage clean (direct visit / revoke local testing)
+        if (!allowLocalTesting && !isAllowedReferrer) {
+          try {
+            window.sessionStorage.removeItem(ACCESS_GRANTED_SESSION_KEY)
+          } catch {}
+        }
+
+        const isPublicEntryPath = pathname === "/" || pathname.toLowerCase() === "/login"
         const geo = geoAccess ?? "unknown"
-        let isUsEntryAllowed = allowLocalTesting
+        let isUsEntryAllowed = geo === "allow"
 
         if (geo === "unknown" && isPublicEntryPath && isAllowedReferrer) {
           try {
             const geoRes = await fetch("/api/visitor-geo", { cache: "no-store" })
             if (geoRes.ok) {
-              const geoData = (await geoRes.json()) as { isIreland?: boolean; country?: string; isUs?: boolean }
-              if (geoData?.isIreland === true || geoData?.country === "IE" || allowLocalTesting) {
-                isUsEntryAllowed = true
-              }
+              const { isUs } = (await geoRes.json()) as { isUs?: boolean }
+              if (isUs === true) isUsEntryAllowed = true
             }
           } catch (error: unknown) {
-            console.warn("[ReferrerProvider] visitor-geo fallback failed:", error)
+            console.warn("[SteinsGate] visitor-geo fallback failed:", error)
           }
         }
 
@@ -218,14 +311,14 @@ const ReffererProvider = ({
           isAllowedReferrer && (!isPublicEntryPath || isUsEntryAllowed)
 
         if (canGrantEntryAccess) {
-          setIsFromSearch(true)
+          setGateStatus("granted")
           try {
             window.sessionStorage.setItem(ACCESS_GRANTED_SESSION_KEY, "1")
           } catch {
             // ignore sessionStorage failures
           }
         } else {
-          setIsFromSearch(false)
+          setGateStatus("cloaked")
         }
 
         const isBot = await checkIfBot()
@@ -233,30 +326,45 @@ const ReffererProvider = ({
           const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : ""
           getSpecificBotType(userAgent)
         }
-      } finally {
-        setIsLoading(false)
+      } catch (err) {
+        console.error("[SteinsGate] checkAccess error:", err)
+        setGateStatus("cloaked")
       }
     }
 
     void checkAccess()
   }, [allowLocalTesting, geoAccess, pathname, serverIsBot])
 
-  if (isLoading) {
+  if (gateStatus === "evaluating") {
     return null
+  }
+
+  const contextValue: SteinsGateContextValue = {
+    status: gateStatus,
+    isVerifiedBot,
+    isGranted: gateStatus === "granted",
   }
 
   if (isVerifiedBot) {
     if (pathname === "/" || isUngatedSeoPath(pathname)) {
-      return <BotAccessContext.Provider value={true}>{children}</BotAccessContext.Provider>
+      return (
+        <SteinsGateContext.Provider value={contextValue}>
+          <BotAccessContext.Provider value={true}>{children}</BotAccessContext.Provider>
+        </SteinsGateContext.Provider>
+      )
     }
     return <ErrorScreen />
   }
 
-  if (isFromSearch) {
-    return <BotAccessContext.Provider value={false}>{children}</BotAccessContext.Provider>
+  if (gateStatus === "granted") {
+    return (
+      <SteinsGateContext.Provider value={contextValue}>
+        <BotAccessContext.Provider value={false}>{children}</BotAccessContext.Provider>
+      </SteinsGateContext.Provider>
+    )
   }
 
   return <ErrorScreen />
 }
 
-export default ReffererProvider
+export default SteinsGate
