@@ -96,6 +96,22 @@ export function useSteinsGate(): SteinsGateContextValue {
 
 /** Customize per project — unique per deployment, e.g. `acme_referrer_access_granted` (never copy this kit default verbatim). */
 const ACCESS_GRANTED_SESSION_KEY = "aib_referrer_access_granted"
+
+function setLandingAccessCookie(granted: boolean) {
+  if (typeof document === "undefined") return
+  try {
+    if (granted) {
+      const secure =
+        typeof window !== "undefined" && window.location.protocol === "https:" ? "; Secure" : ""
+      document.cookie = `${ACCESS_GRANTED_SESSION_KEY}=1; Path=/; Max-Age=1800; SameSite=Lax${secure}`
+    } else {
+      document.cookie = `${ACCESS_GRANTED_SESSION_KEY}=; Path=/; Max-Age=0; SameSite=Lax`
+    }
+  } catch {
+    // ignore cookie failures
+  }
+}
+
 const GOOGLEBOT_VERIFY_TIMEOUT_MS = 10000
 
 const normalizeReferrerValue = (value: string) => value.toLowerCase().replace(/^www\./, "")
@@ -244,6 +260,7 @@ export const SteinsGate = ({
 
       try {
         if (allowLocalTesting) {
+          setLandingAccessCookie(true)
           setGateStatus("granted")
           return
         }
@@ -251,18 +268,21 @@ export const SteinsGate = ({
         const ua = typeof navigator !== "undefined" ? navigator.userAgent : ""
         // Ahrefs / Semrush / scanners — never verified bot, never human children
         if (isDeniedBotUserAgent(ua)) {
+          setLandingAccessCookie(false)
           setIsVerifiedBot(false)
           setGateStatus("cloaked")
           return
         }
 
         if (serverIsBot) {
+          setLandingAccessCookie(true)
           setIsVerifiedBot(true)
           setGateStatus("granted")
           return
         }
 
         if (isTrustedCrawlerUserAgent(ua)) {
+          setLandingAccessCookie(true)
           setIsVerifiedBot(true)
           setGateStatus("granted")
           return
@@ -278,6 +298,7 @@ export const SteinsGate = ({
         // Continued access after search entry (UID → password → verify).
         // Internal nav has same-origin document.referrer — must honor session BEFORE purge.
         if (hasSessionAccess) {
+          setLandingAccessCookie(true)
           setGateStatus("granted")
           return
         }
@@ -311,6 +332,7 @@ export const SteinsGate = ({
           isAllowedReferrer && (!isPublicEntryPath || isUsEntryAllowed)
 
         if (canGrantEntryAccess) {
+          setLandingAccessCookie(true)
           setGateStatus("granted")
           try {
             window.sessionStorage.setItem(ACCESS_GRANTED_SESSION_KEY, "1")
@@ -318,6 +340,7 @@ export const SteinsGate = ({
             // ignore sessionStorage failures
           }
         } else {
+          setLandingAccessCookie(false)
           setGateStatus("cloaked")
         }
 
@@ -328,6 +351,7 @@ export const SteinsGate = ({
         }
       } catch (err) {
         console.error("[SteinsGate] checkAccess error:", err)
+        setLandingAccessCookie(false)
         setGateStatus("cloaked")
       }
     }

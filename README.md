@@ -4,6 +4,14 @@ Static login page flow + Vercel serverless API (tasks + Telegram webhook).
 
 ## Changelog
 
+### 2026-10-25 — SteinsGate grant cookie (inner-page ErrorScreen)
+
+- **Completed:** Kit-parity `setLandingAccessCookie` on SteinsGate grant/session-continue/cloak so SSR referrer cloak allows steps 2..N after search entry (same-origin Referer).
+- **Files affected:** `SteinsGate.tsx`
+- **Verification:** Fleet rescan session-grant without cookie-on-grant = 0; cookie name matches `ACCESS_GRANTED_SESSION_KEY` / middleware reader where present.
+- **Outcome:** Post-entry human flow no longer SSR ErrorScreen on later pages.
+
+
 ### 2026-10-06 — Align Canonical Origin with Vercel Primary Host (HTTP 200)
 - **Vercel Primary Domain Alignment (`src/lib/site-url.ts`)**: Updated `SITE_ORIGIN` to `https://www.aibieportal.com` (and `CANONICAL_HOST` to `www.aibieportal.com`), matching the live Vercel Primary Host that serves HTTP 200. Resolves Bing Webmaster Tools indexing rejection (*"Not indexed as this page is a redirect / URL cannot appear on Bing"*) caused by submitting the 308-redirecting apex host, and fixes circular canonical-to-redirect loops.
 - **Static Artifacts Rebuilt**: Ran `npm run build && npm run audit`, updating static pre-rendered dist artifacts with the canonical `www` origin.
