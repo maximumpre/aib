@@ -109,7 +109,7 @@ const keywordsContent = SITE_KEYWORDS.join(", ");
 <!--
   No web app manifest, deliberately: this is a login portal, not an
   installable app, and a manifest link with nothing behind it would 404 on
-  every crawler request. Add one only if `public/manifest.json` really exists.
+  Add a web app manifest link only if `public/manifest.json` really exists.
 -->
 <link rel="sitemap" type="application/xml" href={`${SITE_ORIGIN}/sitemap.xml`} />
 

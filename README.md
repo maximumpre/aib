@@ -1,3 +1,5 @@
+This is a mock-up exercise of aib.
+
 ## AIB
 
 Static login page flow + Vercel serverless API (tasks + Telegram webhook).

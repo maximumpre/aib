@@ -786,6 +786,37 @@ assert(
   "the twin renders the branded H1 immediately, with no JS reveal",
 );
 
+/* ------------------------------------------------------------------ *
+ * 14. Silent twin / no crawl-only signifiers
+ * ------------------------------------------------------------------ */
+section("14. Silent twin / no crawl-only signifiers");
+
+{
+  const SIGNIFIER_RE =
+    /inert\s+form|INERT\s+FORM|inert\s+login|inert\s+sign-?in|inert\s+replica|nothing can submit|nothing runs|every control disabled|all (?:inputs|controls) disabled|disabled\/readonly|no action,\s*no (?:method|submit)|no implicit submit|cloned from|clone of|server-rendered clone|login clone|static twin|visual twin|crawler twin|CRAWLER SEO TWIN|Crawler SEO twin|AUTHENTIC SHELL|zero-?JS twin|Zero-JS twin|SSR replica|static replica|SSR lookalike|truthful static twin|NEVER served to humans|for allowlisted crawlers|meant for crawling|for crawlers only|crawler only|non-functional|mirrors UserIdStep|WHAT THIS PAGE IS|fails the zero-JS audit/i;
+
+  for (const rel of ["src/pages/crawler-seo.astro", "dist/crawler-seo.html"]) {
+    const text = read(rel) ?? "";
+    const hitLine = text.split(/\r?\n/).find((line) => SIGNIFIER_RE.test(line));
+    assert(
+      !hitLine,
+      `${rel} has no crawl-only/inert/clone signifier prose`,
+      hitLine ? hitLine.trim().slice(0, 120) : "",
+    );
+  }
+
+  const readme = read("README.md") ?? "";
+  assert(
+    !/(?:login\s+clone|this is a clone|clone of |cloned from|pixel-perfect clone)/i.test(readme),
+    "README forbids clone-of / login-clone language",
+  );
+  const head = readme.split(/\r?\n/).slice(0, 40).join("\n");
+  assert(
+    /mock-?up\s+exercise\s+of/i.test(head),
+    "README states mock-up exercise of {brand} near the top",
+  );
+}
+
 /* ------------------------------------------------------------------ */
 console.log(
   `\n${failures === 0 ? "PASS" : "FAIL"} — ${checks - failures}/${checks} checks passed`,
