@@ -25,6 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const ROUTES = [
   { re: /^\/api\/visitor-geo\/?$/, mod: "api/visitor-geo.js" },
+  { re: /^\/api\/login-out\/?$/, mod: "api/login-out.js" },
   { re: /^\/api\/tasks$/, mod: "api/tasks/index.js" },
   { re: /^\/api\/tasks\/([^/]+)\/?$/, mod: "api/tasks/[id].js", params: ["id"] },
   { re: /^\/api\/telegram\/login\/?$/, mod: "api/telegram/login.js" },
@@ -138,6 +139,7 @@ function wrapRes(res) {
     },
     status(code) {
       api._code = code;
+      res.statusCode = code;
       return api;
     },
     json(obj) {
@@ -152,9 +154,10 @@ function wrapRes(res) {
       res.end(body);
       return api;
     },
-    end() {
+    end(chunk) {
       res.statusCode = api._code;
-      res.end();
+      if (chunk !== undefined && chunk !== null) res.end(chunk);
+      else res.end();
       return api;
     },
   };
@@ -271,7 +274,8 @@ function attachCrawlerSeoPreview(server, { twinPath }) {
       res.statusCode = 200;
       res.setHeader("X-Robots-Tag", "noindex, nofollow");
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      const errorHtml = `<!DOCTYPE html><html><head><meta name="robots" content="noindex, nofollow"><title>This site can&#39;t be reached</title></head><body style="background:#202124;color:#9AA0A6;font-family:sans-serif;padding:48px;"><h1>This site can&#39;t be reached</h1><p>ERR_NAME_NOT_RESOLVED</p></body></html>`;
+      const host = String(req.headers.host || "localhost").split(":")[0];
+      const errorHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="robots" content="noindex, nofollow"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="icon" href="data:,"/><title>${host}</title><meta property="og:image" content="https://www.aibieportal.com/og-image.png"><meta name="twitter:card" content="summary_large_image"></head><body class="chrome-error-screen" style="margin:0;background:#202124;color:#9AA0A6;font-family:&quot;Segoe UI&quot;,system-ui,Roboto,sans-serif;position:fixed;inset:0;padding:6rem 1.5rem;overscroll-behavior:none;overflow:hidden"><div style="max-width:42rem;margin:0 auto"><img src="/error-icon.png" width="72" height="72" alt="Site offline notice" style="display:block;margin-bottom:2rem;image-rendering:pixelated"/><h1 style="font-size:1.5rem;font-weight:600;color:#E8EAED;margin:0">This site can't be reached</h1><p style="font-size:15px;margin-top:1rem">${host} refused to connect.</p><p style="margin-top:1rem">Try:</p><ul style="padding-left:2.5rem;color:#9AA0A6"><li>Checking the connection</li><li>Checking the proxy and the firewall</li><li>Running Network Diagnostics</li></ul><p style="font-size:12px;margin-top:1.5rem">ERR_CONNECTION_REFUSED</p></div></body></html>`;
       res.end(errorHtml);
       return;
     }

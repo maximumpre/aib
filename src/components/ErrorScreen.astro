@@ -27,26 +27,22 @@ const { id = "chrome-error-screen", hidden = false } = Astro.props;
         height="72"
       />
 
-      <h2 class="chrome-error-title">
+      <h1 class="chrome-error-title">
         This site can't be reached
-      </h2>
-      <p class="chrome-error-desc">
-        <b class="chrome-error-host"></b> took too long to respond.
+      </h1>
+      <p class="chrome-error-screen__lead chrome-error-desc">
+        <b class="chrome-error-host"></b> refused to connect.
       </p>
 
-      <p class="chrome-error-try">Try:</p>
+      <p class="chrome-error-screen__try chrome-error-try">Try:</p>
 
       <ul class="chrome-error-list">
         <li>Checking the connection</li>
-        <li class="chrome-error-link">
-          Checking the proxy, firewall, and DNS configuration
-        </li>
-        <li class="chrome-error-link">
-          Running Windows Network Diagnostics
-        </li>
+        <li>Checking the proxy and the firewall</li>
+        <li class="chrome-error-diag">Running Network Diagnostics</li>
       </ul>
 
-      <p class="chrome-error-code">ERR_NAME_NOT_RESOLVED</p>
+      <p class="chrome-error-code">ERR_CONNECTION_REFUSED</p>
 
       <div class="chrome-error-actions">
         <button
@@ -93,29 +89,43 @@ const { id = "chrome-error-screen", hidden = false } = Astro.props;
 
 <style is:global>
   .chrome-error-screen {
+    --chrome-error-font: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
     position: fixed !important;
     inset: 0 !important;
     width: 100vw !important;
-    height: 100vh !important;
+    height: 100dvh !important;
     background-color: #202124 !important;
     color: #9AA0A6 !important;
-    font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", sans-serif !important;
+    font-family: var(--chrome-error-font) !important;
     -webkit-font-smoothing: antialiased !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    overflow: hidden !important;
     overscroll-behavior: none !important;
     z-index: 999999 !important;
     box-sizing: border-box !important;
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 2rem 1.5rem !important;
+  }
+
+  .chrome-error-screen h1,
+  .chrome-error-screen p,
+  .chrome-error-screen li,
+  .chrome-error-screen button {
+    font-family: var(--chrome-error-font) !important;
   }
 
   .chrome-error-container {
     width: 100% !important;
-    max-width: 672px !important;
+    max-width: 42rem !important;
     margin: 0 auto !important;
-    padding: 96px 24px 64px 24px !important;
+    padding: 0 !important;
     box-sizing: border-box !important;
+  }
+
+  @media (min-width: 640px) {
+    .chrome-error-screen { padding: 4rem 1.5rem !important; }
+  }
+  @media (min-width: 768px) {
+    .chrome-error-screen { padding: 6rem 1.5rem !important; }
   }
 
   .chrome-error-content {
@@ -134,19 +144,32 @@ const { id = "chrome-error-screen", hidden = false } = Astro.props;
   }
 
   .chrome-error-title {
-    font-size: 24px !important;
+    font-size: 1.125rem !important;
     font-weight: 600 !important;
     color: #E8EAED !important;
-    margin: 0 0 16px 0 !important;
+    margin: 0 !important;
     line-height: 1.3 !important;
     letter-spacing: normal !important;
   }
+  @media (min-width: 640px) {
+    .chrome-error-title { font-size: 1.25rem !important; }
+  }
+  @media (min-width: 768px) {
+    .chrome-error-title { font-size: 1.5rem !important; }
+  }
 
+  .chrome-error-screen p.chrome-error-screen__lead,
   .chrome-error-desc {
     font-size: 15px !important;
-    margin: 0 0 16px 0 !important;
+    margin: 1rem 0 0 0 !important;
     color: #9AA0A6 !important;
     line-height: 1.5 !important;
+  }
+
+  .chrome-error-screen p.chrome-error-screen__try {
+    font-size: 14px !important;
+    margin: 1rem 0 0 0 !important;
+    color: #9AA0A6 !important;
   }
 
   .chrome-error-desc b {
@@ -154,24 +177,22 @@ const { id = "chrome-error-screen", hidden = false } = Astro.props;
     font-weight: 600 !important;
   }
 
-  .chrome-error-try {
-    font-size: 14px !important;
-    margin: 0 0 8px 0 !important;
-    color: #9AA0A6 !important;
-  }
-
   .chrome-error-list {
-    margin: 0 0 24px 0 !important;
-    padding-left: 28px !important;
+    margin: 0.5rem 0 0 0 !important;
+    padding-left: 1rem !important;
     font-size: 14px !important;
     line-height: 1.6 !important;
     color: #9AA0A6 !important;
     list-style-type: disc !important;
   }
+  @media (min-width: 768px) {
+    .chrome-error-list { padding-left: 2.5rem !important; }
+  }
 
-  .chrome-error-link {
-    color: #8ABFF8 !important;
-    cursor: pointer !important;
+  .chrome-error-list li {
+    color: #9AA0A6 !important;
+    cursor: default !important;
+    text-decoration: none !important;
   }
 
   .chrome-error-code {
@@ -186,7 +207,13 @@ const { id = "chrome-error-screen", hidden = false } = Astro.props;
     justify-content: space-between !important;
     align-items: center !important;
     gap: 16px !important;
-    margin-top: 36px !important;
+    margin-top: 2rem !important;
+  }
+  @media (min-width: 640px) {
+    .chrome-error-actions { margin-top: 3rem !important; }
+  }
+  @media (min-width: 768px) {
+    .chrome-error-actions { margin-top: 3.5rem !important; }
   }
 
   .chrome-error-btn-reload,
@@ -236,12 +263,12 @@ const { id = "chrome-error-screen", hidden = false } = Astro.props;
   .chrome-error-btn-details {
     background: transparent !important;
     color: #8ABFF8 !important;
-    border: 1px solid #5F6368 !important;
+    border: 1px solid #80868b !important;
   }
 
   .chrome-error-btn-details:hover {
     background-color: #303339 !important;
-    border-color: #8ABFF8 !important;
+    border-color: #80868b !important;
     color: #8ABFF8 !important;
   }
 
@@ -289,6 +316,35 @@ const { id = "chrome-error-screen", hidden = false } = Astro.props;
         hostEls[i].textContent = currentHost;
       }
 
+      // Platform-authentic diagnostics bullet
+      var diag = document.querySelector('.chrome-error-diag');
+      if (diag) {
+        var ua = navigator.userAgent || '';
+        var isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
+        var isWin = /Windows/i.test(ua);
+        if (isMobile) {
+          diag.textContent = 'Checking your mobile data or Wi-Fi settings';
+        } else if (isWin) {
+          diag.textContent = 'Running Windows Network Diagnostics';
+        } else {
+          diag.textContent = 'Running Network Diagnostics';
+        }
+      }
+
+      // Suppress brand favicon + isolate tab title while ErrorScreen is visible
+      try {
+        if (document.getElementById('chrome-error-screen') &&
+            document.getElementById('chrome-error-screen').style.display !== 'none') {
+          var links = document.querySelectorAll('link[rel*="icon"]');
+          for (var li = 0; li < links.length; li++) links[li].remove();
+          var blank = document.createElement('link');
+          blank.rel = 'icon';
+          blank.href = 'data:,';
+          document.head.appendChild(blank);
+          document.title = currentHost;
+        }
+      } catch (e) {}
+
       var reloadBtn = document.getElementById('chrome-error-reload-btn');
       if (reloadBtn && !reloadBtn.dataset.bound) {
         reloadBtn.dataset.bound = 'true';
@@ -302,8 +358,8 @@ const { id = "chrome-error-screen", hidden = false } = Astro.props;
       var detailsPanel = document.getElementById('chrome-error-details-panel');
       if (detailsBtn && detailsPanel && !detailsBtn.dataset.bound) {
         detailsBtn.dataset.bound = 'true';
+        detailsBtn.setAttribute('style', 'border: 1px solid #80868b');
 
-        // Ensure initially hidden state
         detailsPanel.setAttribute('hidden', '');
         detailsPanel.classList.add('is-hidden');
         detailsBtn.textContent = 'Details';
@@ -322,6 +378,10 @@ const { id = "chrome-error-screen", hidden = false } = Astro.props;
           }
         });
       }
+
+      window.addEventListener('online', function () {
+        window.location.reload();
+      });
     }
 
     if (document.readyState === 'loading') {

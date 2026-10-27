@@ -1,39 +1,23 @@
 ---
 /**
+ * Search-engine HTML surface — static server render for allowlisted search /
+ * AI-reference agents from `src/lib/crawler-ua.js`, reachable at `/crawler-seo.html`.
  *
- * from `src/lib/crawler-ua.js` (search + social + discovery + AI-reference
- * agents), and reachable directly at `/crawler-seo.html` for inspection.
- *
- * RULES this page must not break:
- *
- *  1. ZERO JavaScript. The only `<script>` allowed is
- *     `type="application/ld+json"`. Nothing here imports the login behaviour
- *     module — that is what makes the guarantee structural rather than a
- *     matter of discipline. Every executable byte would be shipped to every
- *     crawler request.
- *
- *     component the human landing renders, so the card, logo, form chrome,
- *     typography and breakpoints are the same file — desktop and mobile parity
- *     holds by construction. Bing and Yandex both publish rules against
- *     "materially different experiences"; this twin is the same brand, the same
- *     service and the same form.
- *
- *  3. H1, description and keywords are SSR-readable in the BODY as ordinary
- *     visible text — not `sr-only`, not `display:none`, not zero opacity.
- *
- *  4. DOM order: header → login (H1 + form) → Related searches → footer.
- *     Below-the-fold keyword blocks get cropped out of Google Search Console's
- *     smartphone screenshots, so the keywords sit directly after the form.
- *
- *  5. The head is the shared `SeoHead`, so the twin and the human landing
- *     cannot drift meta-for-meta.
+ * RULES:
+ *  1. ZERO executable JavaScript (only application/ld+json).
+ *  2. Same LoginForm shell as the human landing (desktop + mobile parity).
+ *  3. DOM order: Header → Breadcrumb → Login → SSR copy → FAQ → Related searches → Footer.
+ *  4. Same-window links only; authentic destinations or /api/login-out.
+ *  5. Shared SeoHead — this page and the landing cannot drift meta-for-meta.
  */
 import Layout from "../layouts/Layout.astro";
 import LoginForm from "../components/LoginForm.astro";
 import StructuredData from "../components/StructuredData.astro";
 import { SITE_DESCRIPTION } from "../lib/seo-metadata.js";
 import { SITE_VISIBLE_KEYWORDS } from "../lib/seo-keywords.js";
-import { SITE_HOMEPAGE_CANONICAL } from "../lib/site-config.js";
+import { SITE_DISPLAY_NAME, SITE_HOMEPAGE_CANONICAL } from "../lib/site-config.js";
+import { SEO_FAQS } from "../lib/seo-faq.js";
+import { TWIN_LINKS } from "../lib/seo-links.js";
 ---
 
 <Layout
@@ -52,5 +36,78 @@ import { SITE_HOMEPAGE_CANONICAL } from "../lib/site-config.js";
     interactive={false}
     intro={SITE_DESCRIPTION}
     keywords={SITE_VISIBLE_KEYWORDS}
-  />
+  >
+    <section slot="seo-enrichment" class="aib-srp-enrichment" aria-label="Internet banking guidance">
+      <article aria-labelledby="section-overview">
+        <h2 id="section-overview">{SITE_DISPLAY_NAME} Internet Banking portal overview</h2>
+        <p>
+          This secure sign-in gateway is the official entry point for Allied Irish Banks Phone &amp;
+          Internet Banking customers in Ireland. Personal and small-business customers who hold an
+          {SITE_DISPLAY_NAME} bank account, savings account, or credit card use the same Registration
+          number and 5-digit Personal Access Code (PAC) to access internet banking in the browser and
+          the {SITE_DISPLAY_NAME} Mobile app. The portal is designed for everyday banking wherever you
+          are — checking balances, reviewing recent transactions, and managing payments without
+          visiting a branch. {SITE_DISPLAY_NAME} Internet Banking is available approximately 20 hours
+          a day, subject to Terms and Conditions, with Strong Customer Authentication protecting
+          higher-risk actions.
+        </p>
+        <p>
+          Allied Irish Banks, p.l.c. (trading as {SITE_DISPLAY_NAME}) is regulated by the Central Bank
+          of Ireland. The registered office is 10 Molesworth Street, Dublin 2. AIB Group plc ordinary
+          shares trade on Euronext Dublin under ticker A5G. This login surface is for customers who
+          already hold Phone &amp; Internet Banking credentials; new registrations start by calling
+          0818 724 020 to receive a Registration number and PAC before the first secure log in.
+        </p>
+      </article>
+
+      <article aria-labelledby="section-services">
+        <h2 id="section-services">Account servicing &amp; digital banking services</h2>
+        <p>
+          After you authenticate with your Registration number and PAC, Internet Banking provides
+          self-service tools for day-to-day money management. Typical authenticated services include:
+        </p>
+        <ul>
+          <li>View account balances, transaction history, and recent activity across current, savings, and card accounts.</li>
+          <li>View, print, and share eStatements and eFee Advices without waiting for paper post.</li>
+          <li>Pay bills, manage standing orders, and transfer money between accounts domestically and internationally (transaction limits apply).</li>
+          <li>Top up any pre-pay mobile phone and complete other supported self-service payments.</li>
+          <li>Complete Strong Customer Authentication and use an AIB Card Reader when prompted for elevated security checks.</li>
+        </ul>
+      </article>
+
+      <article aria-labelledby="section-support">
+        <h2 id="section-support">Account sign-in &amp; customer support</h2>
+        <p>
+          Keep your Registration number and PAC private. If you forget your Registration number, use
+          the official retrieve-registration service (valid AIB debit card, date of birth, and SMS
+          activation code) or open the Mobile app and choose Services → My details. If your PAC is
+          forgotten or locked, call 0818 724 020 (or +353 1 771 2424 from abroad), Monday to Sunday
+          09:00–17:00. For general login assistance call 0818 724 724. Help articles, security
+          guidance, and branch options are available from the Help Centre. Download the official
+          “AIB Mobile” app from the App Store or Google Play when you prefer banking on your phone.
+        </p>
+        <p>
+          Related guidance:
+          <a href={TWIN_LINKS.retrieveRegistration}>Retrieve Registration number</a>,
+          <a href={TWIN_LINKS.internetBanking}>Internet Banking overview</a>,
+          <a href={TWIN_LINKS.help}>Help Centre</a>,
+          <a href={TWIN_LINKS.privacy}>Privacy Statement</a>.
+          Unhandled auxiliary actions route through
+          <a href={TWIN_LINKS.loginOut}>secure session exit</a>.
+        </p>
+      </article>
+
+      <article aria-labelledby="section-faq">
+        <h2 id="section-faq">Frequently asked questions</h2>
+        {
+          SEO_FAQS.map((faq) => (
+            <details id={faq.id}>
+              <summary>{faq.question}</summary>
+              <p>{faq.answer}</p>
+            </details>
+          ))
+        }
+      </article>
+    </section>
+  </LoginForm>
 </Layout>

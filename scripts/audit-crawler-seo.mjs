@@ -73,14 +73,23 @@ const aiReferral = await import(req("src/lib/ai-referral.js"));
 section("1. Keyword system");
 
 assert(
-  seoKeywords.SITE_KEYWORDS.length > 0,
-  "SITE_KEYWORDS is populated",
+  seoKeywords.SITE_KEYWORDS.length >= 60,
+  "SITE_KEYWORDS meets 60+ quota across clusters",
   `got ${seoKeywords.SITE_KEYWORDS.length}`,
 );
 assert(
-  seoKeywords.SITE_VISIBLE_KEYWORDS.length > 0,
-  "SITE_VISIBLE_KEYWORDS is populated",
+  seoKeywords.SITE_VISIBLE_KEYWORDS.length >= 25,
+  "SITE_VISIBLE_KEYWORDS meets ≥25 Related searches quota",
   `got ${seoKeywords.SITE_VISIBLE_KEYWORDS.length}`,
+);
+assert(
+  typeof seoKeywords.CORPORATE_BRAND_KEYWORDS !== "undefined" &&
+    typeof seoKeywords.ACCOUNT_SERVICES_KEYWORDS !== "undefined" &&
+    typeof seoKeywords.AUTH_ACTION_KEYWORDS !== "undefined" &&
+    typeof seoKeywords.CUSTOMER_ROLE_KEYWORDS !== "undefined" &&
+    typeof seoKeywords.PLATFORM_SYNERGY_KEYWORDS !== "undefined" &&
+    typeof seoKeywords.SELF_SERVICE_MOBILE_KEYWORDS !== "undefined",
+  "six semantic keyword clusters are exported",
 );
 
 // The visible list must be exactly the meta list minus the host tokens — a
@@ -138,17 +147,21 @@ section("2. Site names");
 const graph = seoMetadata.buildStructuredData();
 const website = graph["@graph"].find((n) => n["@type"] === "WebSite");
 const host = siteConfig.canonicalHostFromOrigin().toLowerCase();
+const apexHost = host.replace(/^www\./, "");
 const alt = website.alternateName;
 
-assert(alt.length >= 2, "alternateName has brand phrases plus a host fallback");
-assert(alt[alt.length - 1] === host, "alternateName ends with the bare lowercase host", alt.join(" | "));
+assert(Array.isArray(alt) && alt.length >= 2, "alternateName has ≥2 brand phrases", String(alt));
 assert(
-  alt.slice(0, -1).every((n) => !/^https?:\/\//i.test(n)),
+  alt.every((n) => !/^https?:\/\//i.test(n)),
   "no raw URL in alternateName",
 );
 assert(
-  !alt.slice(0, -1).some((n) => n.toLowerCase() === host),
-  "the host appears only once, as the last entry",
+  alt.every((n) => {
+    const lower = String(n).toLowerCase();
+    return lower !== host && lower !== apexHost && !lower.includes(apexHost);
+  }),
+  "alternateName is brand-only (zero raw host/domain tokens — Google SERP Layer 1 trap)",
+  alt.join(" | "),
 );
 assert(website.name === siteConfig.SITE_DISPLAY_NAME, "WebSite.name === SITE_DISPLAY_NAME");
 assert(
@@ -505,15 +518,49 @@ if (twinHtml) {
   assert(!/sr-only|screen-reader|visually-hidden/i.test(block), "keyword block is not sr-only");
   assert(!/opacity:\s*0(\D|$)/i.test(block), "keyword block is not zero-opacity");
 
-  // DOM order.
+  // DOM order: Header → Breadcrumb → Login → SSR/FAQ → Related searches → Footer.
   const h1Idx = twinHtml.search(/<h1/i);
   const formIdx = twinHtml.search(/<form/i);
   const footerIdx = twinHtml.search(/<footer/i);
+  const breadcrumbIdx = twinHtml.search(/aria-label="Breadcrumb"/i);
+  const faqIdx = twinHtml.search(/Frequently asked questions/i);
+  const enrichmentIdx = twinHtml.search(/aib-srp-enrichment/i);
   assert(h1Idx > -1 && formIdx > h1Idx, "H1 precedes the form", `${h1Idx} / ${formIdx}`);
-  assert(relatedIdx > formIdx, "keywords come after the form", `${relatedIdx} / ${formIdx}`);
+  assert(breadcrumbIdx > -1 && breadcrumbIdx < formIdx, "breadcrumb precedes the form");
+  assert(enrichmentIdx > formIdx, "SSR enrichment comes after the form", `${enrichmentIdx} / ${formIdx}`);
+  assert(faqIdx > enrichmentIdx, "FAQ block is inside enrichment after overview");
+  assert(relatedIdx > faqIdx, "keywords come after FAQ", `${relatedIdx} / ${faqIdx}`);
   assert(footerIdx > relatedIdx, "the footer comes after the keywords", `${footerIdx} / ${relatedIdx}`);
   assert(/<header/i.test(twinHtml), "a real <header> element exists");
   assert(footerIdx > -1, "a real <footer> element exists");
+
+  // A12 — SSR body richness (≥ 300 words) + FAQ accordions + same-window links.
+  const bodyMatch = twinHtml.match(/<body\b[^>]*>([\s\S]*)<\/body>/i);
+  const bodyText = (bodyMatch?.[1] ?? twinHtml)
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&[a-z]+;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const wordCount = bodyText.split(/\s+/).filter(Boolean).length;
+  assert(wordCount >= 300, "twin body has ≥ 300 crawlable words", `${wordCount} words`);
+  const detailsCount = (twinHtml.match(/<details\b/gi) || []).length;
+  assert(detailsCount >= 5 && detailsCount <= 6, "twin has 5–6 FAQ <details> accordions", `${detailsCount}`);
+  assert(!/target\s*=\s*["']_blank["']/i.test(twinHtml), "twin has zero target=_blank");
+  assert(!/href\s*=\s*["']#["']/i.test(twinHtml), "twin has no dead href=# anchors");
+  assert(!/javascript:void/i.test(twinHtml), "twin has no javascript:void links");
+  const relatedTerms = (twinHtml.match(/Related searches:\s*([^<]+)/i)?.[1] ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  assert(relatedTerms.length >= 25, "Related searches lists ≥ 25 terms", `${relatedTerms.length}`);
+  const hostToken = siteConfig.canonicalHostFromOrigin().toLowerCase();
+  const apexToken = hostToken.replace(/^www\./, "");
+  assert(
+    !bodyText.toLowerCase().includes(hostToken) && !bodyText.toLowerCase().includes(apexToken),
+    "project host never appears as visible twin body text",
+  );
 
   // A3 — head parity with the human landing.
   const tagsOf = (html) =>
@@ -547,6 +594,20 @@ if (twinHtml) {
       assert(
         parsed["@graph"]?.some((n) => n["@type"] === "WebSite"),
         "JSON-LD declares WebSite",
+      );
+      assert(
+        parsed["@graph"]?.some((n) => n["@type"] === "BreadcrumbList"),
+        "JSON-LD declares BreadcrumbList",
+      );
+      assert(
+        parsed["@graph"]?.some((n) => n["@type"] === "FAQPage"),
+        "JSON-LD declares FAQPage",
+      );
+      const org = parsed["@graph"]?.find((n) => n["@type"] === "Organization");
+      assert(Array.isArray(org?.sameAs) && org.sameAs.length >= 2, "Organization.sameAs present");
+      assert(
+        String(org?.logo?.url || "").includes("og-image.png"),
+        "Organization.logo points at og-image.png",
       );
     }
   }

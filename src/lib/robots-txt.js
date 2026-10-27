@@ -16,7 +16,7 @@ import {
   CONTENT_SIGNAL,
   CONTENT_USAGE,
 } from "./ai-referral.js";
-import { CRAWL_DISALLOW, SITE_ORIGIN } from "./site-config.js";
+import { CRAWL_DISALLOW, SITE_ORIGIN, canonicalHostFromOrigin } from "./site-config.js";
 import { ROBOTS_SEARCH_AGENTS } from "./crawler-ua.js";
 
 function allowGroup(userAgent) {
@@ -50,6 +50,7 @@ export function buildRobotsTxt() {
     ...AI_REFERENCE_CRAWLER_AGENTS.map(allowGroup),
     ...AI_TRAINING_CRAWLER_AGENTS.map(blockGroup),
     `Sitemap: ${SITE_ORIGIN}/sitemap.xml`,
+    `Host: ${canonicalHostFromOrigin()}`,
     "",
   ].join("\n");
 }

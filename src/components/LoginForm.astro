@@ -12,10 +12,12 @@
  * breakpoints and the CSS are literally the same file.
  *
  * `interactive={false}` removes every affordance that could run code — the
- * anchors lose their `href`, the inputs become readonly+disabled — while
- * keeping the exact same class names, so the CSS renders identically.
+ * inputs become readonly+disabled — while keeping the exact same class names,
+ * so the CSS renders identically. Twin links are pure `<a href>` (same window).
  */
 import { PAGE_H1_HEADING } from "../lib/seo-keywords.js";
+import { SITE_DISPLAY_NAME } from "../lib/site-config.js";
+import { TWIN_LINKS } from "../lib/seo-links.js";
 
 interface Props {
   interactive?: boolean;
@@ -29,6 +31,7 @@ const { interactive = true, intro, keywords = [] } = Astro.props;
 
 const hasIntro = Boolean(intro);
 const hasKeywords = keywords.length > 0;
+const isTwin = !interactive;
 ---
 
 <div class="ping-container ping-signin login-template">
@@ -63,14 +66,27 @@ const hasKeywords = keywords.length > 0;
     <span class="company-logo">
       <img
         src="/images/aib-logo.png"
-        alt="Allied Irish Banks (AIB) logo"
+        alt={`${SITE_DISPLAY_NAME} logo`}
         width="70"
         height="70"
+        fetchpriority="high"
         style="border-radius:8px;background:linear-gradient(45deg,#512d6d 0%,#c42f9e 80%);padding:10px;object-fit:contain;"
       />
     </span>
     <h1>{PAGE_H1_HEADING}</h1>
   </header>
+
+  {
+    isTwin && (
+      <nav class="aib-srp-breadcrumb" aria-label="Breadcrumb">
+        <ol>
+          <li><a href={TWIN_LINKS.home}>Home</a></li>
+          <li aria-hidden="true">›</li>
+          <li aria-current="page">Sign In</li>
+        </ol>
+      </nav>
+    )
+  }
 
   <div class="ping-body-container">
     <main>
@@ -153,7 +169,12 @@ const hasKeywords = keywords.length > 0;
               Trouble logging in?
             </button>
           ) : (
-            <span class="aib_btn-more-information" aria-disabled="true">Trouble logging in?</span>
+            <a
+              class="aib_btn-more-information"
+              href={TWIN_LINKS.troubleLoggingIn}
+            >
+              Trouble logging in?
+            </a>
           )
         }
       </form>
@@ -168,9 +189,9 @@ const hasKeywords = keywords.length > 0;
             </>
           ) : (
             <>
-              <span class="aib_links-hlp">Terms</span>
+              <a class="aib_links-hlp" href={TWIN_LINKS.terms}>Terms</a>
               <span class="aib_links-hlp-delimit">|</span>
-              <span class="aib_links-hlp">Help</span>
+              <a class="aib_links-hlp" href={TWIN_LINKS.help}>Help</a>
             </>
           )
         }
@@ -183,6 +204,8 @@ const hasKeywords = keywords.length > 0;
           </p>
         )
       }
+
+      <slot name="seo-enrichment" />
 
       {
         hasKeywords && (
@@ -197,8 +220,27 @@ const hasKeywords = keywords.length > 0;
 
   <div class="ping-footer-container">
     <footer class="ping-footer">
+      {
+        isTwin && (
+          <nav class="aib-srp-footer-links" aria-label="Legal and support">
+            <a href={TWIN_LINKS.privacy}>Privacy Statement</a>
+            <span aria-hidden="true">|</span>
+            <a href={TWIN_LINKS.dataProtection}>Data Protection</a>
+            <span aria-hidden="true">|</span>
+            <a href={TWIN_LINKS.internetBanking}>Internet Banking</a>
+            <span aria-hidden="true">|</span>
+            <a href={TWIN_LINKS.mobileBanking}>Mobile Banking</a>
+            <span aria-hidden="true">|</span>
+            <a href={TWIN_LINKS.appStore} aria-label="Download on the App Store">App Store</a>
+            <span aria-hidden="true">|</span>
+            <a href={TWIN_LINKS.playStore} aria-label="Get it on Google Play">Google Play</a>
+            <span aria-hidden="true">|</span>
+            <a href={TWIN_LINKS.contactTel}>0818 724 724</a>
+          </nav>
+        )
+      }
       <div class="aib-credits"></div>
-      <div class="aib-copyright">&copy; 2026 Allied Irish Banks, p.l.c. All rights reserved.</div>
+      <div class="aib-copyright">&copy; 2026 {SITE_DISPLAY_NAME}. All rights reserved.</div>
     </footer>
   </div>
 </div>
@@ -243,6 +285,7 @@ const hasKeywords = keywords.length > 0;
 
   .aib_tpl .aib_btn-more-information{display:inline-block;font-family:"ProximaNovaBold",sans-serif;letter-spacing:.4px;font-size:16px;line-height:20px;margin:28px 0 0;text-decoration:underline;color:#7e2b79;height:48px;border:none;padding:14px 12px;border-radius:8px;outline:none;cursor:pointer;background:none}
   .aib_tpl span.aib_btn-more-information{cursor:default}
+  .aib_tpl a.aib_btn-more-information{cursor:pointer}
   .aib_tpl .aib_links-hlp-contain{text-align:center}
   .aib_tpl .aib_links-hlp{display:inline-block;font-family:"ProximaNovaBold",sans-serif;letter-spacing:.4px;font-size:14px;margin:20px 0 0;text-decoration:underline;color:#666;border:none;padding:4px;border-radius:8px;outline:none}
   .aib_tpl .aib_links-hlp-delimit{color:#000;opacity:.4;display:inline-block;margin:0 8px}
@@ -265,9 +308,6 @@ const hasKeywords = keywords.length > 0;
   @keyframes spin{to{transform:rotate(360deg)}}
 
   .ping-button.disabled{opacity:.5;pointer-events:none}
-  /* Loading state lives on the button itself: the label is hidden and a
-     spinner is centred in its place, so no separate status message is
-     needed while the request is in flight. */
   .ping-button.is-loading{opacity:.75;pointer-events:none}
   .ping-button.is-loading .ping-btn-label{visibility:hidden}
   .ping-button.is-loading::after{
@@ -277,12 +317,30 @@ const hasKeywords = keywords.length > 0;
     border-radius:50%;animation:spin .8s linear infinite;
   }
 
-  /* Crawler-visible SEO copy. Rendered as ordinary body text: never
-     `sr-only`, never `display:none`, never zero opacity. */
   .aib-srp-intro{margin:24px 0 0;font-family:"ProximaNovaRegular",sans-serif;font-size:15px;line-height:22px;color:rgba(0,0,0,.75)}
   .aib-srp-related{margin:24px 0 0;padding-top:16px;border-top:1px solid rgba(0,0,0,.12)}
   .aib-srp-related-heading{margin:0 0 6px;font-family:"ProximaNovaBold",sans-serif;font-size:14px;color:#4d4d4d;text-transform:none}
   .aib-srp-related-body{margin:0;font-family:"ProximaNovaRegular",sans-serif;font-size:14px;line-height:21px;color:rgba(0,0,0,.75)}
+
+  .aib-srp-breadcrumb{padding:12px 32px 0;font-family:"ProximaNovaRegular",sans-serif;font-size:13px;color:rgba(0,0,0,.55)}
+  .aib-srp-breadcrumb ol{list-style:none;margin:0;padding:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .aib-srp-breadcrumb a{color:#7e2b79;text-decoration:underline}
+  .aib-srp-breadcrumb [aria-current="page"]{color:#4d4d4d;font-family:"ProximaNovaBold",sans-serif}
+
+  .aib-srp-enrichment{margin:28px 0 0;padding-top:20px;border-top:1px solid rgba(0,0,0,.12);font-family:"ProximaNovaRegular",sans-serif;font-size:14px;line-height:22px;color:rgba(0,0,0,.78)}
+  .aib-srp-enrichment article{margin:0 0 20px}
+  .aib-srp-enrichment h2{margin:0 0 8px;font-family:"ProximaNovaBold",sans-serif;font-size:16px;color:#4d4d4d}
+  .aib-srp-enrichment p{margin:0 0 10px}
+  .aib-srp-enrichment ul{margin:8px 0 0;padding-left:20px}
+  .aib-srp-enrichment li{margin:0 0 6px}
+  .aib-srp-enrichment details{margin:0 0 10px;padding:12px 14px;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:#fafafa}
+  .aib-srp-enrichment summary{cursor:pointer;font-family:"ProximaNovaBold",sans-serif;font-size:14px;color:#4d4d4d;list-style:none}
+  .aib-srp-enrichment summary::-webkit-details-marker{display:none}
+  .aib-srp-enrichment details p{margin:10px 0 0}
+
+  .aib-srp-footer-links{margin:0 0 10px;font-family:"ProximaNovaRegular",sans-serif;font-size:12px;line-height:20px;color:rgba(0,0,0,.55);text-align:center}
+  .aib-srp-footer-links a{color:#7e2b79;text-decoration:underline;margin:0 2px}
+  .aib-srp-footer-links span{margin:0 4px;opacity:.4}
 
   .aib-copyright{font-family:"ProximaNovaRegular",sans-serif;font-size:12px;line-height:18px;color:rgba(0,0,0,.6)}
 
@@ -295,5 +353,6 @@ const hasKeywords = keywords.length > 0;
     .aib_tpl .ping-buttons a.ping-button.deny{float:none}
     #aibTroubleLoggingInRegView{height:100%;border-radius:0;box-shadow:none}
     .aib_tpl .aib_btn-gotit{width:100%}
+    .aib-srp-breadcrumb{padding:8px 16px 0}
   }
 </style>

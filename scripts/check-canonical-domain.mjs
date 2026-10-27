@@ -46,6 +46,70 @@ function allowApexOrigin() {
   return process.env.SITE_ORIGIN_ALLOW_APEX === "1";
 }
 
+function skipVercelApexRedirectCheck() {
+  return (
+    process.env.SKIP_VERCEL_APEX_REDIRECT_CHECK === "1" ||
+    process.env.SITE_ORIGIN_ALLOW_APEX === "1"
+  );
+}
+
+/**
+ * Failsafe: www SITE_ORIGIN projects should ship vercel.json host redirect
+ * apex → https://www.… so Bing does not follow a messy multi-hop chain.
+ * Merge snippets/vercel-apex-www-redirect.json (replace YOUR_APEX_HOST).
+ */
+async function assertVercelApexWwwRedirect(siteOrigin, hostname) {
+  if (!hostname.startsWith("www.") || hostname === "localhost") return;
+  if (skipVercelApexRedirectCheck()) return;
+
+  const vercelPath = path.join(ROOT, "vercel.json");
+  try {
+    await access(vercelPath);
+  } catch {
+    console.error(
+      "Canonical domain check failed: vercel.json missing while SITE_ORIGIN is www. " +
+        "Merge snippets/vercel-cron-crawler-ranges.json and snippets/vercel-apex-www-redirect.json " +
+        "(replace YOUR_APEX_HOST with the apex hostname). " +
+        "Opt out: SKIP_VERCEL_APEX_REDIRECT_CHECK=1",
+    );
+    process.exit(1);
+  }
+
+  let vercel;
+  try {
+    vercel = JSON.parse(await readFile(vercelPath, "utf8"));
+  } catch {
+    console.error("Canonical domain check failed: vercel.json is not valid JSON.");
+    process.exit(1);
+  }
+
+  const apexHost = hostname.replace(/^www\./, "");
+  const redirects = Array.isArray(vercel.redirects) ? vercel.redirects : [];
+  const ok = redirects.some((rule) => {
+    if (!rule || rule.permanent !== true) return false;
+    const dest = String(rule.destination || "");
+    if (!dest.startsWith(`https://${hostname}`)) return false;
+    const has = Array.isArray(rule.has) ? rule.has : [];
+    return has.some(
+      (h) =>
+        h &&
+        h.type === "host" &&
+        String(h.value || "").toLowerCase() === apexHost,
+    );
+  });
+
+  if (!ok) {
+    console.error(
+      `Canonical domain check failed: vercel.json must permanently redirect host ${apexHost} → https://${hostname}/:path*. ` +
+        `Merge snippets/vercel-apex-www-redirect.json and replace YOUR_APEX_HOST with ${apexHost}. ` +
+        `Opt out: SKIP_VERCEL_APEX_REDIRECT_CHECK=1`,
+    );
+    process.exit(1);
+  }
+
+  console.log(`Vercel apex→www redirect OK (${apexHost} → ${hostname}).`);
+}
+
 async function main() {
   let siteUrlFile = null;
   for (const candidate of CANDIDATES) {
@@ -130,6 +194,8 @@ async function main() {
     );
     process.exit(1);
   }
+
+  await assertVercelApexWwwRedirect(siteOrigin, hostname);
 
   if (!source.includes("SITE_HOMEPAGE_CANONICAL") && !source.includes('from "./site"')) {
     console.error("Canonical domain check failed: SITE_HOMEPAGE_CANONICAL missing.");

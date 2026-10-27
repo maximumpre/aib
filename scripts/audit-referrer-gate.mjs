@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /**
- * Audit ReferrerProvider for the reload bypass bug (same-origin referrer grant).
+ * Audit the live Astro referrer gate for the reload bypass bug
+ * (same-origin referrer grant). Pure-Astro projects use
+ * `src/components/ReferrerGate.astro` — never a Next Hybrid SteinsGate.tsx.
+ *
  * Usage: node scripts/audit-referrer-gate.mjs [project-root]
  * Exit 1 if any check fails.
  */
@@ -20,43 +23,66 @@ function readIfExists(relPaths) {
 
 const failures = []
 
-const rp = readIfExists(["SteinsGate.tsx", "src/SteinsGate.tsx"])
-if (!rp) {
-  failures.push("missing SteinsGate.tsx")
+// Next Hybrid leftover must not reappear in a pure-Astro project.
+for (const dead of ["SteinsGate.tsx", "src/SteinsGate.tsx", "middleware.ts", "src/middleware.ts", "proxy.ts", "src/proxy.ts"]) {
+  if (fs.existsSync(path.join(root, dead))) {
+    failures.push(`Next Hybrid leftover present: ${dead} (pure Astro uses ReferrerGate.astro + vercel.json UA rewrite)`)
+  }
+}
+
+const gate = readIfExists([
+  "src/components/ReferrerGate.astro",
+  "components/ReferrerGate.astro",
+])
+if (!gate) {
+  failures.push("missing src/components/ReferrerGate.astro")
 } else {
-  const text = rp.text
+  const text = gate.text
 
   if (/\bisFromSameOrigin\b/.test(text)) {
-    failures.push("SteinsGate uses isFromSameOrigin (reload bypass risk)")
+    failures.push("ReferrerGate uses isFromSameOrigin (reload bypass risk)")
   }
   if (/\binternalReferrer\b/.test(text)) {
-    failures.push("SteinsGate uses internalReferrer (reload bypass risk)")
+    failures.push("ReferrerGate uses internalReferrer (reload bypass risk)")
   }
   if (/\(allowedReferrer\s*\|\|\s*internalReferrer\)/.test(text)) {
     failures.push("canGrantEntryAccess allows internalReferrer (reload bypass)")
   }
 
-  const sessionIdx = text.indexOf("hasSessionAccess")
-  const referrerGrantIdx = text.indexOf("isFromAllowedSource(referrer)")
+  const sessionIdx = text.search(/sessionStorage\.getItem\(\s*SESSION_KEY\s*\)/)
+  const referrerGrantIdx = text.search(/document\.referrer|isFromAllowedSource\s*\(\s*referrer/)
   if (sessionIdx === -1) {
-    failures.push("missing hasSessionAccess session check")
+    failures.push("missing sessionStorage session check (SESSION_KEY)")
   } else if (referrerGrantIdx === -1) {
-    failures.push("missing isFromAllowedSource(referrer) check")
+    failures.push("missing document.referrer / allowed-source check")
   } else if (sessionIdx > referrerGrantIdx) {
-    failures.push("session check must run before isFromAllowedSource(referrer) (reload bug)")
+    failures.push("session check must run before referrer grant (reload bug)")
   }
 
-  if (!text.includes('geoAccess ?? "unknown"')) {
-    failures.push('SteinsGate missing geoAccess ?? "unknown" fallback')
+  if (!/refOrigin\s*===\s*pageOrigin/.test(text) && !/referrerOrigin\s*===\s*pageOrigin/.test(text)) {
+    failures.push("ReferrerGate missing same-origin referrer reject")
   }
 
-  if (!/referrerOrigin\s*===\s*pageOrigin/.test(text)) {
-    failures.push("isFromAllowedSource missing same-origin referrer reject")
+  if (!/SESSION_KEY\s*=\s*["'][^"']+["']/.test(text) && !/ACCESS_GRANTED_SESSION_KEY/.test(text)) {
+    failures.push("missing ACCESS_GRANTED / SESSION_KEY constant")
   }
 
-  if (!/ACCESS_GRANTED_SESSION_KEY/.test(text)) {
-    failures.push("missing ACCESS_GRANTED_SESSION_KEY")
+  // Geo must fail closed (deny on error), not open.
+  if (/visitor-geo/.test(text) && !/\.catch\s*\(/.test(text)) {
+    failures.push("visitor-geo path missing .catch fail-closed handler")
   }
+}
+
+const indexPage = readIfExists(["src/pages/index.astro", "pages/index.astro"])
+if (!indexPage) {
+  failures.push("missing src/pages/index.astro")
+} else if (!/ReferrerGate/.test(indexPage.text)) {
+  failures.push("index.astro does not mount ReferrerGate")
+}
+
+const twinPage = readIfExists(["src/pages/crawler-seo.astro", "pages/crawler-seo.astro"])
+if (twinPage && /ReferrerGate/.test(twinPage.text)) {
+  failures.push("crawler-seo.astro must NEVER mount ReferrerGate")
 }
 
 if (failures.length) {
@@ -65,4 +91,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log(`OK ${path.basename(root)} (referrer gate — no reload bypass patterns)`)
+console.log(`OK ${path.basename(root)} (referrer gate — Astro ReferrerGate, no reload bypass)`)

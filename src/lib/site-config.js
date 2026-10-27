@@ -60,7 +60,7 @@ export const SITE_HOMEPAGE_CANONICAL = `${SITE_ORIGIN}/`;
  * Bump when homepage SEO copy changes materially. Used as the sitemap
  * `lastmod`; a stale date weakens re-crawl signals.
  */
-export const SITE_CONTENT_UPDATED_AT = readEnv("SITE_CONTENT_UPDATED_AT") || "2026-10-04T00:00:00.000Z";
+export const SITE_CONTENT_UPDATED_AT = readEnv("SITE_CONTENT_UPDATED_AT") || "2026-10-27T00:00:00.000Z";
 
 export function canonicalHostFromOrigin() {
   try {

@@ -96,7 +96,7 @@ export const DENIED_BOT_UA = [
   "ahrefsbot",
   "semrush",
   "semrushbot",
-  "mj12",
+  // MJ12bot is a search allowlisted crawler (SEARCH_CRAWLER_UA) — never deny here
   "dotbot",
   "blexbot",
   "rogerbot",

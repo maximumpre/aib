@@ -33,12 +33,23 @@ import {
   NOINDEX_PATHS,
   NOINDEX_PAGE_ROBOTS,
   robotsContent,
+  SITE_ORIGIN,
 } from "../src/lib/site-config.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = path.join(ROOT, "vercel.json");
 
 const UA_PATTERN = buildCrawlerUaPattern(AI_REFERENCE_CRAWLER_AGENTS);
+
+/** Apex hostname for permanent www lock (PROBE G.4b / Bing empty-index). */
+function apexHostFromSiteOrigin() {
+  try {
+    const host = new URL(SITE_ORIGIN).hostname.toLowerCase();
+    return host.startsWith("www.") ? host.slice(4) : host;
+  } catch {
+    return "";
+  }
+}
 
 /** One condition object, reused so the rewrite and the header stamp cannot differ. */
 function crawlerUaCondition() {
@@ -64,6 +75,17 @@ function buildConfig() {
     redirects: [
       { source: "/index.html", destination: "/", permanent: true },
       { source: "/login", destination: "/", permanent: true },
+      // www lock: apex → www primary (Bing empty-index / multi-hop failsafe)
+      ...(apexHostFromSiteOrigin()
+        ? [
+            {
+              source: "/:path*",
+              has: [{ type: "host", value: apexHostFromSiteOrigin() }],
+              destination: `${SITE_ORIGIN}/:path*`,
+              permanent: true,
+            },
+          ]
+        : []),
     ],
 
     /*
